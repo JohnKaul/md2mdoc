@@ -119,3 +119,5 @@ stamp-h1
 tags
 hints
 md2mdoc
+*.d
+*.mdoc
