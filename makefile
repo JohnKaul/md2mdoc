@@ -25,7 +25,7 @@
 # ===-------------------------------------------------------------===
 
 # Set the following variable to YES/NO to make this makefile quiet.
-QUIET           :=      YES
+QUIET			:=      YES
 
 _q = $(subst YES,@,$(subst NO,,$(QUIET)))
 
@@ -35,12 +35,12 @@ _q = $(subst YES,@,$(subst NO,,$(QUIET)))
 srcdir          :=	src
 incdir          :=	$(srcdir)/include
 extrainc        :=	../../include
-testdir		:=	test
+testdir			:=	test
 docdir          :=	doc
 buildlocation   :=	.
 # NOTE:
 # -Prefix set to $(HOME) so that binaries will be installed to %(HOME)/bin
-prefix          :=	$(HOME)/bin
+prefix	        :=	$(HOME)/bin
 
 # ===-------------------------------------------------------------===
 # We collect information from each module in these three variables.
@@ -74,7 +74,7 @@ SED             :=	sed
 MKDIR           :=	mkdir -p
 CP              :=	cp
 CTAGS           :=	ctags
-FHINTS			:=  fhints
+FHINTS			:=  $(HOME)/bin/fhints
 TEST            :=	test -d
 
 # ===-------------------------------------------------------------===
@@ -232,11 +232,11 @@ almostclean:
 	$(_q)$(RM) $(objects)
 
 .PHONY: tags
-ctags:
+tags:
 	$(_q)$(CTAGS) $(sources)
 
 .PHONY: hints
-fhintsrun:
+hints:
 	$(_q)$(FHINTS) $(sources)
 
 .PHONY: install
