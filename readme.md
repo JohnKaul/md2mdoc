@@ -13,24 +13,41 @@ This project is a simple markdown to mdoc (for man pages) converter.
 
 ## DESCRIPTION
 
-This file will convert a simple markdown file to use mdoc 
+This file will convert a simple markdown file to use mdoc format. This
+will allow for easier man page creation.
 
+NOTE: This program is just using character subsituion (it is not an AST).
+
+This tool was built to help myself create man pages. I normally keep
+project notes, documentation in a simple markdown format. I use these
+notes in my readme's, documentation things, etc. while I am making
+large decisions about how my program should operate. This utility, I
+thought, would allow me to keep my notes in a simple markdown format
+until my project notes/design decissions are more complete and/or
+ready to be moved to a more formal format (mdoc).
+
+For example, in the design phase of a project I will create a
+man-page-style-document where I write down my specifications
+(program arguments, inputs, flags, etc.) and using a simple text file
+allows me to make large decisions--cut/add--at will.
+
+Example:
 ```markdown
     # NAME
     projectname -- my project to simplify the world.
-    
+
     # SYNOPSIS
     projectname mdfile mdocfile
-    
+
     # DESCRIPTION
     A long project decription about the proect here.
-    
+
     # OPTIONS
     -a
         Append a file.
-    
+
     -B
-        Use backward searching patterns 
+        Use backward searching patterns
     ...
 ```
 
@@ -70,13 +87,13 @@ $ cd ~/<place>/<you>/<keep>/<your>/<code>
 $ git clone git@gitlab.localdomain:john/md2mdoc.git
 ```
 
-## BUILD INSTRUCTIONS 
+## BUILD INSTRUCTIONS
 
 This project uses MAKE.
 
 ```bash
-$ cd md2mdoc 
-$ make 
+$ cd md2mdoc
+$ make
 ```
 
 ## CONTRIBUTION GUIDELINES
