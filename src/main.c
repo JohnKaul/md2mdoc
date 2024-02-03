@@ -35,7 +35,7 @@ const char program_version[] = "0.0.1";
 //-------------------------------------------------------------------
 void *processfd(void *arg);                             /* open the FD and send to find_entries(); */
 void monitorfd(int fd[], int numfds);                   /* create thread to monitor fd's. */
-void docommand(char *cmd, int fd /*, int cmdsize */);   /* process one line of text at a time from the  input file. */
+void docommand(char *cmd /*, int fd, int cmdsize */);   /* process one line of text at a time from the  input file. */
 int readline(int fd, char *buf, int nbytes);            /* read a line of text from file. */
 
 //-------------------------------------------------------------------
@@ -146,7 +146,7 @@ void *processfd(void *arg) {    /*{{{*/
   for ( ; ; ) {
     if ((nbytes = readline(fd, buff, LINE_MAX)) <= 0)
       break;
-    docommand(buff, (fd + 1)/*, nbytes */);
+    docommand(buff /*, (fd + 1), nbytes */);
   }
   return NULL;
 }
@@ -164,25 +164,31 @@ int cicmp(const char *cp) {     /*{{{*/
 }
 /*}}}*/
 
-void docommand(char *cmd, int fd /*, int cmdsize */) {      /*{{{*/
+void docommand(char *cmd /*, int fd, int cmdsize */) {      /*{{{*/
   // This function will be passed the current line of text from the
   // input file and this function will search the string and print the
   // proper mdoc format strings to the output file.
-  //
-  // TODO:
-  // 1. Remove the FD argument.
-  // 2. remove the cmdsize.
-  //    function signature should be:
-  //    void docommand(char *cmd);
-  //        where the cmd arg is the current line read from a file descriptor.
-  int c;                /* current character */
-  c = *cmd;             /* Start at the beginning of the string */
-  fd = filedescriptors[1];
+
+  int c;                                                /* current character */
+  c = *cmd;                                             /* Start at the beginning of the string */
+  int fd = filedescriptors[1];                          /* The output file */
   switch (c) {
-    case '\n':          /* newlines are replaced with a break. */
+    case '\n':                                          /* newlines are replaced with a break. */
       dprintf(fd, ".Pp%s", cmd);
       break;
-    case '#':
+    case '@':                                           /* author */
+      ++cmd;                                            /* eat the @ sym. */
+      dprintf(fd, ".Au%s", cmd);
+      break;
+    case '&':                                           /* date */
+      ++cmd;
+      dprintf(fd, ".Dd%s", cmd);
+      break;
+    case '%':                                           /* document tag */
+      ++cmd;
+      dprintf(fd, ".Dt%s.Os\n", cmd);
+      break;
+    case '#':                                           /* section break */
       if(strcmp(cmd, "# OPTIONS\n") == 0) {
         dprintf(fd, ".Sh %s.Bl -tag -width Ds\n", ++cmd);
       } else {
@@ -193,19 +199,16 @@ void docommand(char *cmd, int fd /*, int cmdsize */) {      /*{{{*/
       ++cmd;                    // eat the dash
       if(*cmd == '\n') {        // if only item left in the string is a newline...
         dprintf(fd, ".El\n");   // close the item list.
-        break;
+      } else {
+        dprintf(fd, ".It Fl %s", cmd);
       }
-      dprintf(fd, ".It Fl %s", cmd);
       break;
     case '~':
+      cmd = 0;                  // not sure *shoulder shrug*
       dprintf(fd, ".El\n");
       break;
-    case ' ':
-      // Trim leading space
-      while(isspace((unsigned char)*cmd)) ++cmd;
-      dprintf(fd, "%s", cmd);
-      break;
     default:
+      while(isspace((unsigned char)*cmd)) ++cmd;
       dprintf(fd, "%s", cmd);
       break;
   }
