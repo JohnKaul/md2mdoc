@@ -195,10 +195,10 @@ void docommand(char *cmd /*, int fd, int cmdsize */) {      /*{{{*/
         dprintf(fd, ".Sh %s", ++cmd);
       }
       break;
-    case '-':
-      ++cmd;                    // eat the dash
-      if(*cmd == '\n') {        // if only item left in the string is a newline...
-        dprintf(fd, ".El\n");   // close the item list.
+    case '-':                                           /* a list item */
+      ++cmd;
+      if(*cmd == '\n') {                                // However, if the line was only a dash
+        dprintf(fd, ".El\n");                           // then we need to close the item list.
       } else {
         dprintf(fd, ".It Fl %s", cmd);
       }
@@ -207,6 +207,12 @@ void docommand(char *cmd /*, int fd, int cmdsize */) {      /*{{{*/
       cmd = 0;                  // not sure *shoulder shrug*
       dprintf(fd, ".El\n");
       break;
+    case '<':                                           /* The start of a `no format` section. */
+      dprintf(fd, ".in +5\n.nf\n");
+      break;
+    case '>':                                           /* the end of a `no format` section */
+        dprintf(fd, ".fi\n");
+        break;
     default:
       while(isspace((unsigned char)*cmd)) ++cmd;
       dprintf(fd, "%s", cmd);
