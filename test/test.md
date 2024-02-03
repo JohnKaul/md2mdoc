@@ -1,15 +1,15 @@
-.Dd January 8, 2024
-.Dt fhints user manual
-.Os
-.Au John Kaul
+& January 8, 2024
+% SAMPLE 1
+@ John Kaul
+
 # NAME
-projectname -- test.
+projectname - This is a sample test.
 
 a
     line below a newline.
 
 # SYNOPSIS
-fhints [BFadf] [f hintsfile] file ...
+md2mdoc <mdfile> <mdocfile>
 
 # DESCRIPTION
 `fhints` makes a `hints` file from the specified C sources.  A `hints`
@@ -46,5 +46,5 @@ more text.
 -XX
     some argument text
 -YY
-    some more arg text.
+    some more arg text
 -
