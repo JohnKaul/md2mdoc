@@ -76,7 +76,7 @@ your markdown isn't too complicated).
 >
 
 # HISTORY
-None.
+Created for personal use.
 
-# SEE ALSO
-None.
+# AUTHOR
+John Kaul (john.kaul@outlook.com)
