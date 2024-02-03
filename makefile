@@ -74,6 +74,7 @@ SED             :=	sed
 MKDIR           :=	mkdir -p
 CP              :=	cp
 CTAGS           :=	ctags
+FHINTS			:=  fhints
 TEST            :=	test -d
 
 # ===-------------------------------------------------------------===
@@ -230,9 +231,13 @@ clean:
 almostclean:
 	$(_q)$(RM) $(objects)
 
-.PHONY: ctags
+.PHONY: tags
 ctags:
-	$(_q)$(CTAGS) $(sources) $(incdir)/.
+	$(_q)$(CTAGS) $(sources)
+
+.PHONY: hints
+fhintsrun:
+	$(_q)$(FHINTS) $(sources)
 
 .PHONY: install
 install:
@@ -257,7 +262,7 @@ endif
 
 # set the 'all' target to build the program(s), run ctags,
 # and cleanup object files.
-all: $(programs) almostclean ctags
+all: $(programs) almostclean tags hints
 
 # silently run the compile rules.
 .SILENT:
