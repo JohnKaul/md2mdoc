@@ -1,14 +1,14 @@
 //===---------------------------------------------------*- C -*---===
-// File Last Updated: October 21 2020 20:31
+// File Last Updated: 02.02.24 19:29:57
 //
 //: md2mdoc
 //
-// DATE: October 21 2020
+// DATE: January 21 2024
 // BY  : John Kaul [john.kaul@outlook.com]
 //
 // DESCRIPTION
-// This is a section for a description of this project. This section
-// can/should contain basic documetation and scope for the project.
+// This is a project to convert simple markdown to mdoc (man page)
+// format.
 //===-------------------------------------------------------------===
 
 #include <ctype.h>
@@ -26,10 +26,6 @@
 // Constants Declarations
 //-------------------------------------------------------------------
 const char program_version[] = "0.0.1";
-//:~  static char *outfile = "tester.mdoc"; /* output file */
-FILE *outfile;
-
-#define BUFSIZE 1024
 
 #define W_FLAGS (O_WRONLY | O_CREAT)
 #define W_PERMS (S_IRUSR | S_IWUSR)
@@ -37,22 +33,18 @@ FILE *outfile;
 //-------------------------------------------------------------------
 // Function Prototypes
 //-------------------------------------------------------------------
-void *processfd(void *arg);             /* open the FD and send to find_entries(); */
-void monitorfd(int fd[], int numfds);   /* create thread to monitor fd's */
-void docommand(char *cmd, int fd /*, int cmdsize */);  /* placeholder file which reports file size. */
-int readline(int fd, char *buf, int nbytes);    /* read a line of text from file. */
+void *processfd(void *arg);                             /* open the FD and send to find_entries(); */
+void monitorfd(int fd[], int numfds);                   /* create thread to monitor fd's. */
+void docommand(char *cmd, int fd /*, int cmdsize */);   /* process one line of text at a time from the  input file. */
+int readline(int fd, char *buf, int nbytes);            /* read a line of text from file. */
 
 //-------------------------------------------------------------------
 // Global Variables
 //-------------------------------------------------------------------
-char *curfile;       /* current input file name */
-
-int filedescriptors[10];     /* Make this tool multithreaded;
-                                create an array to hold
-                                open file descriptors for
-                                passing to an threaded
-                                operation. */
-//:~  char *outfiles[10];           /* Make an array to store the outfiles */
+char *curfile;                                          /* current input file name */
+int filedescriptors[2];                                 /* Make this tool multithreaded; create an array to hold
+                                                           open file descriptors for passing to an threaded
+                                                           operation. */
 
 //-------------------------------------------------------------------
 // Enumeration type TAbortCode.
@@ -99,10 +91,10 @@ void AbortTranslation ( enum TAbortCode ac ) {     /*{{{*/
     exit ( ac );
 } /*}}}*/
 
-void printusage(char *str) {
-    fprintf(stderr, "**** This program tries to convert markdown to mdoc formatting.\n");
+void printusage(char *str) {    /*{{{*/
     fprintf(stderr, "**** Usage: %s <markdownfile> <mdocfiletowrite>\n", str);
 }
+/*}}}*/
 
 //: monitorfd   {{{
 //
@@ -160,9 +152,8 @@ void *processfd(void *arg) {    /*{{{*/
 }
 /*}}}*/
 
-int cicmp(const char *cp) {
+int cicmp(const char *cp) {     /*{{{*/
   int len;
-//:~    char *bp = cp;
 
   for (len = 0; *cp && (*cp & ~' '); ++cp, ++len)
     continue;
@@ -171,11 +162,12 @@ int cicmp(const char *cp) {
   }
   return 0;
 }
+/*}}}*/
 
-void docommand(char *cmd, int fd /*, int cmdsize */) {
-  // This procedure is currently just a placeholder. This procedure is
-  // passes the contents of the file and it currently prints that
-  // string off to STDOUT (along with the bytes).
+void docommand(char *cmd, int fd /*, int cmdsize */) {      /*{{{*/
+  // This function will be passed the current line of text from the
+  // input file and this function will search the string and print the
+  // proper mdoc format strings to the output file.
   //
   // TODO:
   // 1. Remove the FD argument.
@@ -183,7 +175,6 @@ void docommand(char *cmd, int fd /*, int cmdsize */) {
   //    function signature should be:
   //    void docommand(char *cmd);
   //        where the cmd arg is the current line read from a file descriptor.
-  //
   int c;                /* current character */
   c = *cmd;             /* Start at the beginning of the string */
   fd = filedescriptors[1];
@@ -219,8 +210,9 @@ void docommand(char *cmd, int fd /*, int cmdsize */) {
       break;
   }
 }
+/*}}}*/
 
-int readline(int fd, char *buf, int nbytes) {
+int readline(int fd, char *buf, int nbytes) {   /*{{{*/
   // Reads a line from file descriptor and stores the string in buf.
    int numread = 0;
    int returnval;
@@ -244,6 +236,7 @@ int readline(int fd, char *buf, int nbytes) {
    errno = EINVAL;
    return -1;
 }
+/*}}}*/
 
 //------------------------------------------------------*- C -*------
 // Main
@@ -256,27 +249,6 @@ int readline(int fd, char *buf, int nbytes) {
 //  int
 //-------------------------------------------------------------------
 int main(int argc, char *argv[]) {
-  // TODO:
-  // 1. share `argv` with `monitorfd` so `docommand` can write to proper `outfile`.
-  // 2. Create output file(s) based on input file name.
-//:~    int exit_val;                  /* exit value */
-//:~    int step;                      /* step through args */
-//:~    char *cp = "tester.mdoc";
-//:~    FILE *outfile;
-
-//:~    // --Check the command line arguments.
-//:~    //   if there are not enough arguments, exit.
-//:~    if (argc <= 1) {
-//:~      fprintf(stderr, "Usage: %s <ARGUMENT>\n", argv[0]);
-//:~      AbortTranslation(abortInvalidCommandLineArgs);
-//:~    }
-
-//:~    for (exit_val = step = 0; step < argc; ++step) {
-//:~      if ((filedescriptors[step] = open(argv[step], O_RDONLY)) == -1) {
-//:~        warn("%s", argv[step]);
-//:~        exit_val = 1;
-//:~      }
-//:~    }
 
   if (argc != 3) {
     printusage(argv[0]);
@@ -294,19 +266,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-//:~    for (step = 0; step < argv; ++step){
-//:~      if((cp = strrchr(argv[step], '.'))) {
-//:~        if(cp[1] == 'm' && cp[2] == 'd')
-
-//:~    }
-//:~    for(step=1; step < argc; ++step) {
-//:~      cp = argv[step];
-//:~      while(isalpha((unsigned char)*cp)) cp++;
-//:~      strcat(cp, ".mdoc");
-//:~      open(cp, W_FLAGS, W_PERMS);
-//:~    }
-//:~    outfile = fopen(cp, "w");
-//:~    monitorfd(filedescriptors, step);
   monitorfd(filedescriptors, 2);
 
   return 0;
