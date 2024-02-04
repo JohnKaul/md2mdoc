@@ -1,0 +1,85 @@
+.Dd Feb 03 2024
+.Dt md2mdoc 7
+.Os
+.Au John Kaul
+.Pp
+.Sh  NAME
+md2mdoc -- a simple markdown to mdoc converter.
+.Pp
+.Sh  SYNOPSIS
+md2mdoc <mdfile> <mdocfile>
+.Pp
+.Sh  DESCRIPTION
+This utility will convert simple markdown syntax characters to mdoc
+(man page) format characters. It will remove all leading spaces from
+lines.
+.Pp
+This utility is not intelligent at all, it will give wonky results if
+confused but it does offer a very good staring point for creating man
+page documentation for your project.
+.Pp
+The use of this utility is intended to offer a way to keep project
+notes/documention in a simple markdown format (plain text) where large
+sections can be added/deleted easier. When the time comes to create
+more formal documentaiton, this utility aids in that process (assuming
+your markdown isn't too complicated).
+.Pp
+.Sh  CHARACTER CONVERSION TABLE
+.in +5
+.nf
+#           ->  .Sh     : section headers
+blank line  ->  .Pp     : Blank Line
+# OPTIONS   : This section is assumed to contain project options,
+              so a list block is started directly below this section.
+-<char>     ->  .It Fl  : list element
+- (only)    ->  .El     : a single dash is assumed to be a `list end`.
+~           ->  .El     : an alternate `list end` character.
+@           ->  .Au     : author
+&           ->  .Dd     : date
+%           ->  .Dt     : document title
+<           ->  .nf     : start of a `no format` block.
+>           ->  .fi     : end of a `no format` block.
+.fi
+.Pp
+.Sh  SAMPLE MARKDOWN EXAMPLE
+.in +5
+.nf
+& Feb 03 2024
+% progname 7
+@ John Kaul
+.Pp
+# NAME
+progname -- a program to change the world.
+.Pp
+# SYNOPSIS
+progname <inpputfile> <outputfile>
+.Pp
+# DESCRIPTION
+This utility will change the world because
+it will remove all leading spaces from lines
+in a text file.
+.Pp
+# OPTIONS
+-a
+Append to the outout file.
+.Pp
+-B
+Use backward searching patterns (?...?).
+.Pp
+-d
+Parse `#defines` that don't take arguments.
+-
+.Pp
+# CODE EXAMPLE
+<c
+        unsigned long   str_version;    /* version number */
+        unsigned long   str_numstr;     /* # of strings in the file */
+        unsigned long   str_longlen;    /* length of longest string */
+>
+.fi
+.Pp
+.Sh  HISTORY
+Created for personal use.
+.Pp
+.Sh  AUTHOR
+John Kaul (john.kaul@outlook.com)
