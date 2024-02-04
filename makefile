@@ -242,12 +242,13 @@ hints:
 .PHONY: install
 install:
 	$(_q)$(CP) $(programs) $(addsuffix /,$(prefix))
-	$(_q)$(CP) $(documents) $(addsuffix /,$(prefix))
+	$(_q)$(CP) $(docdir)/md2mdoc.7 $(addsuffix /,$(prefix)/man/man7)
+#	$(_q)$(CP) $(documents) $(addsuffix /,$(prefix))
 
 .PHONY: uninstall
 uninstall:
 	$(_q)$(RM) $(addprefix $(prefix)/,$(programs))
-	$(_q)$(RM) $(addprefix $(prefix)/,$(documents))
+#	$(_q)$(RM) $(addprefix $(prefix)/,$(documents))
 
 # ===-------------------------------------------------------------===
 # Include any subdirectory makefiles.
