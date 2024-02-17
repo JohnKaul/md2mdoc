@@ -153,6 +153,7 @@ void *processfd(void *arg) {    /*{{{*/
 /*}}}*/
 
 int cicmp(const char *cp) {     /*{{{*/
+  /* do case independent strcmp. */
   int len;
 
   for (len = 0; *cp && (*cp & ~' '); ++cp, ++len)
@@ -172,6 +173,7 @@ void docommand(char *cmd /*, int fd, int cmdsize */) {      /*{{{*/
   int c;                                                /* current character */
   c = *cmd;                                             /* Start at the beginning of the string */
   int fd = filedescriptors[1];                          /* The output file */
+
   switch (c) {
     case '\n':                                          /* newlines are replaced with a break. */
       dprintf(fd, ".Pp%s", cmd);
@@ -189,7 +191,8 @@ void docommand(char *cmd /*, int fd, int cmdsize */) {      /*{{{*/
       dprintf(fd, ".Dt%s.Os\n", cmd);
       break;
     case '#':                                           /* section break */
-      if(strcmp(cmd, "# OPTIONS\n") == 0) {
+//:~        if(strcmp(cmd, "# OPTIONS\n") == 0) {
+      if(memcmp(cmd, "# OPTIONS", 9) == 0) {
         dprintf(fd, ".Sh %s.Bl -tag -width Ds\n", ++cmd);
       } else {
         dprintf(fd, ".Sh %s", ++cmd);
