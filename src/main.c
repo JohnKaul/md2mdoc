@@ -1,5 +1,5 @@
 //===---------------------------------------------------*- C -*---===
-// File Last Updated: 02.02.24 19:29:57
+// File Last Updated: 08.13.24 21:00:27
 //
 //: md2mdoc
 //
@@ -16,11 +16,16 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+// For FreeBSD
+// TODO: Add preproc
+//:~  #include <sys/types.h>
+//:~  #include <sys/stat.h>
+//:~  #include <unistd.h>
 
 //-------------------------------------------------------------------
 // Constants Declarations
@@ -33,9 +38,8 @@ const char program_version[] = "0.0.1";
 //-------------------------------------------------------------------
 // Function Prototypes
 //-------------------------------------------------------------------
-void *processfd(void *arg);                             /* Open the FD and send to find_entries(); */
-void monitorfd(int fd[], int numfds);                   /* Create thread to monitor fd's. */
-void docommand(char *cmd);                              /* Process one line of text at a time
+void *processfd(void *arg);                             /* Open the FD and send to processline(); */
+void processline(char *cmd);                            /* Process one line of text at a time
                                                            from the  input file. */
 int readline(int fd, char *buf, int nbytes);            /* read a line of text from file. */
 
@@ -46,6 +50,8 @@ char *curfile;                                          /* Current input file na
 int filedescriptors[2];                                 /* Make this tool multithreaded; create
                                                            an array to hold open file descriptors for
                                                            passing to an threaded operation. */
+int stripwhitespace = 1;                                /* Used to pause/stop stripping whitespace */
+
 /*
  * TabAbortCode -- Enums for standard errors.
  */
@@ -99,49 +105,9 @@ void printusage(char *str) { /*{{{*/
 }
 /*}}}*/
 
-/*
- * monitorfd --
- *      The `monitorfd` function uses thread to monitor an array of file
- *      descriptors. If `processfd` causes the calling thread to block for
- *      some reason the thread runtime system schedules another runnable
- *      thread. In this way, processing and reading are overlapped in a
- *      natural way. In contrast, blocking of `processfd` in the
- *      single-threaded implementation causes the entire process to block.
- *
- *      If `monitorfd` fails to create thread `i`, it sets the corresponding
- *      thread ID to itself to signify that creation failed. The last loop
- *      uses `pthread_join`, to wait until all threads have completed.
- */
-void monitorfd(int fd[], int numfds) { /*{{{*/
-  /* create thread to monitor fd's */
-  int error, i;
-  pthread_t *tid;
-
-  //:~    fprintf(stderr, ".Dd $Mdocdate: today\n.Dt TEST\n.Os\n");
-
-  if ((tid = (pthread_t *)calloc(numfds, sizeof(pthread_t))) == NULL) {
-    perror("Failed to allocate space for thread IDs");
-    return;
-  }
-  for (i = 0; i < numfds; ++i) /* create a thread for each file descriptor */
-    if ((error = pthread_create(tid + i, NULL, processfd, (fd + i)))) {
-      fprintf(stderr, "Failed to create thread %d: %s\n", i, strerror(error));
-      tid[i] = pthread_self();
-    }
-  for (i = 0; i < numfds; ++i) {
-    if (pthread_equal(pthread_self(), tid[i]))
-      continue;
-    if ((error = pthread_join(tid[i], NULL)))
-      fprintf(stderr, "Failed to join thread %d: %s\n", i, strerror(error));
-  }
-  free(tid);
-  return;
-} //:~
-/*}}}*/
-
 /* processfd --
  *      Read lines from a given filedescritor and pass them to the
- *      `docommand` function.
+ *      `processline` function.
  */
 void *processfd(void *arg) { /*{{{*/
   /* proces command read from file descriptor */
@@ -154,7 +120,7 @@ void *processfd(void *arg) { /*{{{*/
   for (;;) {
     if ((nbytes = readline(fd, buff, LINE_MAX)) <= 0)
       break;
-    docommand(buff /*, (fd + 1), nbytes */);
+    processline(buff /*, (fd + 1), nbytes */);
   }
   return NULL;
 }
@@ -178,70 +144,95 @@ int cimemcmp(const void *s1, const void *s2, size_t n) { /*{{{*/
 /*}}}*/
 
 /*
- * docommand --
- *      This process the current line from the file.
+ * processline --
+ *      This process the current line from the file and preforms
+ *      simple character substion.
  */
-void docommand(char *cmd) { /*{{{*/
+void processline(char *cmd) { /*{{{*/
   // This function will be passed the current line of text from the
   // input file and this function will search the string and print the
   // proper mdoc format strings to the output file.
 
-  int c;                                    /* current character */
-  c = *cmd;                                 /* Start at the beginning of the string */
-  int fd = filedescriptors[1];              /* The output file */
+  int c;                                      /* current character */
+  c = *cmd;                                   /* Start at the beginning of the string */
+  int fd = filedescriptors[1];                /* The output file */
 
   switch (c) {
-  case '\n':                                /* newlines are replaced with a break. */
-    dprintf(fd, ".Pp%s", cmd);
-    break;
-  case '@':                                 /* author */
-    ++cmd;                                  /* eat the @ sym. */
-    dprintf(fd, ".Au%s", cmd);
-    break;
-  case '&':                                 /* date */
-    ++cmd;
-    dprintf(fd, ".Dd%s", cmd);
-    break;
-  case '%':                                 /* document tag */
-    ++cmd;
-    dprintf(fd, ".Dt%s.Os\n", cmd);
-    break;
-  case '#':                                 /* section break */
-    if (cimemcmp(cmd, "# OPTIONS", 9) == 0) {
-      dprintf(fd, ".Sh %s.Bl -tag -width Ds\n", ++cmd);
-//     } else if (memcmp(cmd, "# LIST", 6) == 0) {
-//       dprintf(fd, ".Sh %s.Bl -tag -width Ds\n", ++cmd);
-//       break;
-// //:~        while (*cmd != '\n') ++cmd;
-     } else {
-      dprintf(fd, ".Sh %s", ++cmd);
-    }
-    break;
-  case '-':                                 /* a list item */
-    ++cmd;
-    if (*cmd == '\n') {                     // However, if the line was only a dash
-      dprintf(fd, ".El\n");                 // then we need to close the item list.
-    } else {
-      dprintf(fd, ".It Fl %s", cmd);
-    }
-    break;
-  case '~':
-    cmd = 0;                                /* not sure; *shoulder shrug* */
-    dprintf(fd, ".El\n");
-    break;
-  case '<':                                 /* The start of a `no format` section. */
-//:~      dprintf(fd, ".in +10\n.nf\n");
-    dprintf(fd, ".Bd -literal -offset indent\n");
-    break;
-  case '>':                                 /* the end of a `no format` section */
-//:~      dprintf(fd, ".fi\n");
-    dprintf(fd, ".Ed\n");
-    break;
-  default:
-    while (isspace((unsigned char)*cmd))
+    case '\n':                                /* newlines are replaced with a break. */
+      dprintf(fd, ".Pp%s", cmd);
+      break;
+    case 'a':                                   // Look for the string 'author:'
+      if(cimemcmp(cmd, "author:", 7) == 0) {
+        cmd += 7;                               /* eat the `author:` string. */
+        dprintf(fd, ".Au%s", cmd);
+        break;
+      }
+//:~      case '@':                                   // author
+//:~        ++cmd;                                  /* eat the @ sym. */
+//:~        dprintf(fd, ".Au%s", cmd);
+//:~        break;
+    case 'd':                                   // date
+      if(cimemcmp(cmd, "date:", 5) == 0) {
+        cmd += 5;
+        dprintf(fd, ".Dd%s", cmd);
+        break;
+      }
+//:~      case '&':                                   // date
+//:~        ++cmd;
+//:~        dprintf(fd, ".Dd%s", cmd);
+//:~        break;
+//:~      case '%':                                   // document tag
+//:~        ++cmd;
+//:~        dprintf(fd, ".Dt%s.Os\n", cmd);
+//:~        break;
+    case 't':                                   // Look for the string 'title:'
+      if(cimemcmp(cmd, "title:", 6) == 0) {
+        cmd += 6;                               /* eat the `title:` string. */
+        dprintf(fd, ".Dt%s.Os\n", cmd);
+        break;
+      }
+    case '#':                                   // section break (heading)
+      if (cimemcmp(cmd, "# OPTIONS", 9) == 0) {
+        dprintf(fd, ".Sh %s.Bl -tag -width Ds\n", ++cmd);
+        } else {
+          dprintf(fd, ".Sh %s", ++cmd);
+        }
+        break;
+    case '[':                                   // Start of a list
+        cmd++;
+        if (*cmd == '\n')
+          dprintf(fd, ".Bl -tag -width Ds\n");
+        break;
+    case ']':                                   // End of a list
+        cmd++;
+        if (*cmd == '\n')                       // However, if the line was only a dash
+          dprintf(fd, ".El\n");                 // then we need to close the item list.
+        break;
+    case '-':                                   /* a list item */
       ++cmd;
-    dprintf(fd, "%s", cmd);
-    break;
+      if (*cmd == '\n')                         // However, if the line was only a dash
+        dprintf(fd, ".El\n");                   //  than we need to close the item list.
+      else
+        dprintf(fd, ".It Fl %s", cmd);
+      break;
+        case '~':
+      cmd = 0;                                  /* not sure; *shoulder shrug* */
+      dprintf(fd, ".El\n");
+      break;
+    case '<':                                   // The start of a `no format` section.
+      dprintf(fd, ".Bd -literal -offset indent\n");
+      stripwhitespace = 0;                      /* Disable stripwhitespace. */
+      break;
+        case '>':                               // The end of a `no format` section
+      dprintf(fd, ".Ed\n");
+      stripwhitespace = 1;
+      break;
+    default:
+      if(stripwhitespace)
+        while (isspace((unsigned char)*cmd))
+          ++cmd;
+      dprintf(fd, "%s", cmd);
+      break;
   }
 }
 /*}}}*/
@@ -312,7 +303,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  monitorfd(filedescriptors, 2);
+  processfd(filedescriptors);
 
   return 0;
 } ///:~
