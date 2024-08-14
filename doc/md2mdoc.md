@@ -1,6 +1,6 @@
 & Feb 03 2024
-% md2mdoc 7
-@ John Kaul
+title: md2mdoc 7
+author: John Kaul
 
 # NAME
 md2mdoc -- a simple markdown to mdoc converter.
@@ -42,8 +42,8 @@ your markdown isn't too complicated).
 # SAMPLE MARKDOWN EXAMPLE
 <md
     & Feb 03 2024
-    % progname 7
-    @ John Kaul
+    title: progname 7
+    author: John Kaul
 
     # NAME
     progname -- a program to change the world.
