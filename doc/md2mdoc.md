@@ -1,6 +1,8 @@
-& Feb 03 2024
+---------------------------------------------------------------------
+date: Feb 03 2024
 title: md2mdoc 7
 author: John Kaul
+---------------------------------------------------------------------
 
 # NAME
 md2mdoc -- a simple markdown to mdoc converter.
@@ -11,7 +13,7 @@ md2mdoc <mdfile> <mdocfile>
 # DESCRIPTION
 This utility will convert simple markdown syntax characters to mdoc
 (man page) format characters. It will remove all leading spaces from
-lines.
+lines unless within a code block.
 
 This utility is not intelligent at all, it will give wonky results if
 confused but it does offer a very good staring point for creating man
@@ -29,21 +31,29 @@ your markdown isn't too complicated).
     blank line  ->  .Pp     : Blank Line
     # OPTIONS   : This section is assumed to contain project options,
                   so a list block is started directly below this section.
-    -<char>     ->  .It Fl  : list element
-    - (only)    ->  .El     : a single dash is assumed to be a `list end`.
-    ~           ->  .El     : an alternate `list end` character.
-    @           ->  .Au     : author
-    &           ->  .Dd     : date
-    %           ->  .Dt     : document title
-    <           ->  .nf     : start of a `no format` block.
-    >           ->  .fi     : end of a `no format` block.
+    -<char>     ->  .It Fl  : List element
+    -           ->  .El     : A single dash is assumed to be a `list end`.
+    ~           ->  .El     : An alternate `list end` character.
+    @           ->  .Au     : Author
+    &           ->  .Dd     : Date
+    %           ->  .Dt     : Document title
+    <           ->  .nf     : Start of a `no format` block.
+    >           ->  .fi     : End of a `no format` block.
+    [           ->  .Bl     : Start of a list (.Bl -tag -width Ds)
+    ]           ->  .El     : End of a list
+    author:     ->  .Au     : Author
+    date:       ->  .Dd     : Date
+    title:      ->  .Dt .Os : Document title.
 >
 
 # SAMPLE MARKDOWN EXAMPLE
 <md
-    & Feb 03 2024
+    
+    ---------------------------------------------------------------------
+    date: Feb 03 2024
     title: progname 7
     author: John Kaul
+    ---------------------------------------------------------------------
 
     # NAME
     progname -- a program to change the world.
