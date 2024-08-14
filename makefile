@@ -47,7 +47,7 @@ tags:
 .PHONY: install
 install:
 	$(_q)$(CP) md2mdoc $(prefix)
-	$(_q)$(CP) $(docdir)/md2mdoc.7 $(prefix)/man/man7
+	$(_q)$(CP) ./doc/md2mdoc.7 $(prefix)/man/man7
 
 .PHONY: uninstall
 uninstall:
