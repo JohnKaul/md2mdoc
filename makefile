@@ -19,7 +19,7 @@ REMOVE			:= rm -f
 #--------------------------------------------------------------------
 # Define the target compile instructions.
 #--------------------------------------------------------------------
-md2mdoc:
+md2mdoc: clean
 	MD2MDOC_TARGET='md2mdoc'
 		@$(CC) $(CFLAGS) -o md2mdoc $(SOURCES)
 
