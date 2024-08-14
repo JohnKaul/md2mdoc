@@ -30,7 +30,7 @@
 //-------------------------------------------------------------------
 // Constants Declarations
 //-------------------------------------------------------------------
-const char program_version[] = "0.0.1";
+const char program_version[] = "0.0.2";
 
 #define W_FLAGS (O_WRONLY | O_CREAT)                    /* Write flags for file output */
 #define W_PERMS (S_IRUSR | S_IWUSR)                     /* Write permissions for file output */
