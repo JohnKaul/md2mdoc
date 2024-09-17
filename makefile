@@ -42,7 +42,8 @@ almostclean:
 
 .PHONY: tags
 tags:
-	$(_q)$(CTAGS) $(sources)
+	$(_q)$(CTAGS) -R .
+#-X- 	$(_q)$(CTAGS) $(sources)
 
 .PHONY: install
 install:
