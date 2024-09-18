@@ -34,13 +34,11 @@ your markdown isn't too complicated).
     -<char>     ->  .It Fl  : List element
     -           ->  .El     : A single dash is assumed to be a `list end`.
     ~           ->  .El     : An alternate `list end` character.
-    @           ->  .Au     : Author
-    &           ->  .Dd     : Date
-    %           ->  .Dt     : Document title
     <           ->  .nf     : Start of a `no format` block.
     >           ->  .fi     : End of a `no format` block.
     [           ->  .Bl     : Start of a list (.Bl -tag -width Ds)
     ]           ->  .El     : End of a list
+    ```         ->  .nf     : Start/End of a `no format` block.
     author:     ->  .Au     : Author
     date:       ->  .Dd     : Date
     title:      ->  .Dt .Os : Document title.
