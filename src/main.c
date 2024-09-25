@@ -1,5 +1,5 @@
 //===---------------------------------------------------*- C -*---===
-// File Last Updated: 09.17.24 17:56:20
+// File Last Updated: 09.24.24 20:33:55
 //
 //: md2mdoc
 //
@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
 #endif
 
 //-------------------------------------------------------------------
@@ -217,6 +218,37 @@ void processline(char *cmd) { /*{{{*/
     case '>':                                           // The end of a `no format` section
       dprintf(fd, ".Ed\n");
       stripwhitespace = 1;
+      break;
+    case '*':                                           // Bold
+        dprintf(fd, ".Sy ");
+        do {                                            /* -print this chars until not star */
+          ++cmd;                                        /* eat the star */
+          if (*cmd != '*')
+            dprintf(fd, "%c", *cmd);
+        } while (*cmd != '*');
+        ++cmd;                                          /* eat the last star */
+//:~          dprintf(fd, "\n.Pp\n");
+        dprintf(fd, "\n");
+      break;
+    case '_':                                           // Italic
+        dprintf(fd, ".Em ");
+        do {                                            /* -print this chars until not star */
+          ++cmd;                                        /* eat the underscore */
+          if (*cmd != '_')
+            dprintf(fd, "%c", *cmd);
+        } while (*cmd != '_');
+        ++cmd;                                          /* eat the last underscore */
+        dprintf(fd, "\n");
+      break;
+    case '^':                                           // Reference
+        dprintf(fd, ".Sx ");
+        do {                                            /* -print this chars until not star */
+          ++cmd;                                        /* eat the underscore */
+          if (*cmd != '^')
+            dprintf(fd, "%c", *cmd);
+        } while (*cmd != '^');
+        ++cmd;                                          /* eat the last underscore */
+        dprintf(fd, "\n");
       break;
     case '`':                                           // Code block -
                                                         //   In markdown, READMEs, forum posts, etc.
