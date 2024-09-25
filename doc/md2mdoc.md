@@ -1,8 +1,6 @@
----------------------------------------------------------------------
 date: Feb 03 2024
 title: md2mdoc 7
 author: John Kaul
----------------------------------------------------------------------
 
 # NAME
 md2mdoc -- a simple markdown to mdoc converter.
@@ -39,6 +37,9 @@ your markdown isn't too complicated).
     [           ->  .Bl     : Start of a list (.Bl -tag -width Ds)
     ]           ->  .El     : End of a list
     ```         ->  .nf     : Start/End of a `no format` block.
+    *           ->  .Bf     : Bold
+    _           ->  .Em     : Italic
+    ^           ->  .Sx     : Reference
     author:     ->  .Au     : Author
     date:       ->  .Dd     : Date
     title:      ->  .Dt .Os : Document title.
@@ -47,11 +48,9 @@ your markdown isn't too complicated).
 # SAMPLE MARKDOWN EXAMPLE
 <md
     
-    ---------------------------------------------------------------------
     date: Feb 03 2024
     title: progname 7
     author: John Kaul
-    ---------------------------------------------------------------------
 
     # NAME
     progname -- a program to change the world.
@@ -81,6 +80,13 @@ your markdown isn't too complicated).
         unsigned long   str_numstr;     /* # of strings in the file */
         unsigned long   str_longlen;    /* length of longest string */
     >
+
+    *WARNING*
+        Never do the above.
+    
+    # SEE ALSO
+    ^md2mdoc(7)^
+    ^anotherreference^
 >
 
 # HISTORY
