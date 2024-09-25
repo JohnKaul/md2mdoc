@@ -10,17 +10,29 @@ projectname - This is a sample test.
     line below a newline.
 ]
 
+_NOTE_
+    The word note will be italic.
+
+*WARNING* 
+    The word warning will be bold.
+
+^md2mdoc(7)^
+    The word md2mdoc(7) will be a reference.
+
 # SYNOPSIS
 md2mdoc <mdfile> <mdocfile>
 
 # DESCRIPTION
-`fhints` makes a `hints` file from the specified C sources.  A `hints` file gives the function prototypes of functions found in source files.  Each line of the hints file contains a hint that can be displayed on Vim's status line.
+`fhints` makes a `hints` file from the specified C sources.  A `hints`
+file gives the function prototypes of functions found in source files.
+Each line of the hints file contains a hint that can be displayed on
+Vim's status line.
 
 By sourcing this `hints` file in Vim, indexed definitions (including `subroutines`, `typedefs`, `defines`, `structs`, `enums`, and `unions`) can be displayed on the status line when typing of the definition in the buffer.
 
 # OPTIONS
 -a
-Append to *hints* file.
+Append to hints file.
 
 -B
 Use backward searching patterns (?...?).
@@ -69,6 +81,7 @@ some more arg text
 
 A code block started with graves.
 
+_EXAMPLE_
 ```
     #define VERSION 1
     unsigned long   str_version;    /* version number */
