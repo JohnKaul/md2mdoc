@@ -1,15 +1,13 @@
-.It Fl --------------------------------------------------------------------
 .Dd Feb 03 2024
 .Dt md2mdoc 7
 .Os
 .Au John Kaul
-.It Fl --------------------------------------------------------------------
 .Pp
 .Sh  NAME
 md2mdoc -- a simple markdown to mdoc converter.
 .Pp
 .Sh  SYNOPSIS
-md2mdoc <mdfile> <mdocfile>
+md2mdoc <input MDfile> <output MDOCfile>
 .Pp
 .Sh  DESCRIPTION
 This utility will convert simple markdown syntax characters to mdoc
@@ -27,38 +25,40 @@ more formal documentaiton, this utility aids in that process (assuming
 your markdown isn't too complicated).
 .Pp
 .Sh  CHARACTER CONVERSION TABLE
+.Pp
 .Bd -literal -offset indent
     #           ->  .Sh     : section headers
     blank line  ->  .Pp     : Blank Line
-    # OPTIONS   : This section is assumed to contain project options,
-                  so a list block is started directly below this section.
     -<char>     ->  .It Fl  : List element
     -           ->  .El     : A single dash is assumed to be a `list end`.
     ~           ->  .El     : An alternate `list end` character.
     <           ->  .nf     : Start of a `no format` block.
     >           ->  .fi     : End of a `no format` block.
-    [           ->  .Bl     : Start of a list (.Bl -tag -width Ds)
-    ]           ->  .El     : End of a list
     ```         ->  .nf     : Start/End of a `no format` block.
+    *           ->  .Bf     : Bold
+    _           ->  .Em     : Italic
+    ^           ->  .Sx     : Reference
+    [           ->  .Op     : Optional argument
     author:     ->  .Au     : Author
     date:       ->  .Dd     : Date
     title:      ->  .Dt .Os : Document title.
 .Ed
 .Pp
 .Sh  SAMPLE MARKDOWN EXAMPLE
+.Pp
 .Bd -literal -offset indent
-    
-    ---------------------------------------------------------------------
     date: Feb 03 2024
     title: progname 7
     author: John Kaul
-    ---------------------------------------------------------------------
 .Pp
     # NAME
     progname -- a program to change the world.
 .Pp
     # SYNOPSIS
-    progname <inpputfile> <outputfile>
+    progname 
+    [-abc]
+    <inpputfile> 
+    <outputfile>
 .Pp
     # DESCRIPTION
     This utility will change the world because
@@ -82,14 +82,27 @@ your markdown isn't too complicated).
         unsigned long   str_numstr;     /* # of strings in the file */
         unsigned long   str_longlen;    /* length of longest string */
     >
+.Pp
+    *WARNING*
+        Never do the above.
+    
+    _NOTE_
+        This is a note block.
+    
+    # SEE ALSO
+    ^md2mdoc(7)^
+    ^this^
+    ^that^
+    ^theotherthing^
 .Ed
+.Pp
+.Em NOTE
+All the symbols this program finds are located at the beginning of
+the line. -i.e. This program is not good at parsing the entire
+strings looking for symbols.
 .Pp
 .Sh  HISTORY
 Created for personal use.
-.Pp
-.Sh  AUTHOR
-John Kaul (john.kaul@outlook.com)
-e.
 .Pp
 .Sh  AUTHOR
 John Kaul (john.kaul@outlook.com)
