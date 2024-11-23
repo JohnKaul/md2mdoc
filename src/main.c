@@ -1,5 +1,5 @@
 //===---------------------------------------------------*- C -*---===
-// File Last Updated: 09.24.24 20:33:55
+// File Last Updated: 11.21.24 21:23:49
 //
 //: md2mdoc
 //
@@ -9,6 +9,23 @@
 // DESCRIPTION
 // This is a project to convert simple markdown to mdoc (man page)
 // format.
+//
+// KEY:
+// ------------------------------------------------------------------
+// #           ->  .Sh     : section headers
+// blank line  ->  .Pp     : Blank Line
+// -<char>     ->  .It Fl  : List element
+// -           ->  .El     : A single dash is assumed to be a `list end`.
+// ~           ->  .El     : An alternate `list end` character.
+// <           ->  .nf     : Start of a `no format` block.
+// >           ->  .fi     : End of a `no format` block.
+// ```         ->  .nf     : Start/End of a `no format` block.
+// *           ->  .Bf     : Bold
+// _           ->  .Em     : Italic
+// ^           ->  .Sx     : Reference
+// author:     ->  .Au     : Author
+// date:       ->  .Dd     : Date
+// title:      ->  .Dt .Os : Document title.
 //===-------------------------------------------------------------===
 
 #include <ctype.h>
@@ -32,7 +49,7 @@
 //-------------------------------------------------------------------
 // Constants Declarations
 //-------------------------------------------------------------------
-const char program_version[] = "0.0.2";
+const char program_version[] = "0.0.3";
 
 #define W_FLAGS (O_WRONLY | O_CREAT)                    /* Write flags for file output */
 #define W_PERMS (S_IRUSR | S_IWUSR)                     /* Write permissions for file output */
@@ -52,6 +69,7 @@ char *curfile;                                          /* Current input file na
 int filedescriptors[2];                                 /* An array to hold open file descriptors. */
 int stripwhitespace = 1;                                /* Used to pause/stop stripping whitespace */
 int codeblock = 0;                                      /* Used for middle of codeblock. */
+int listblock = 0;                                      /* Used for list blocks. */
 
 /*
  * TabAbortCode -- Enums for standard errors.
@@ -114,7 +132,6 @@ void printusage(char *str) { /*{{{*/
  *      `processline` function.
  */
 void *processfd(void *arg) { /*{{{*/
-  /* proces command read from file descriptor */
   char buff[LINE_MAX];
   int fd;
   curfile = (char *)(arg);
@@ -134,7 +151,6 @@ void *processfd(void *arg) { /*{{{*/
  *      Preform a case independent memory region compare.
  */
 int cimemcmp(const void *s1, const void *s2, size_t n) { /*{{{*/
-  /* Prefom a case independent memory region compare.  */
   if (n != 0) {
     const unsigned char *p1 = s1, *p2 = s2;
 
@@ -153,13 +169,9 @@ int cimemcmp(const void *s1, const void *s2, size_t n) { /*{{{*/
  *      simple character substion.
  */
 void processline(char *cmd) { /*{{{*/
-  // This function will be passed the current line of text from the
-  // input file and this function will search the string and print the
-  // proper mdoc format strings to the output file.
-
-  int c;                                                /* -current character */
-  c = *cmd;                                             /* -Start at the beginning of the string */
-  int fd = filedescriptors[1];                          /* -The output file */
+  int c;                                                /* Current character */
+  c = *cmd;                                             /* Start at the beginning of the string */
+  int fd = filedescriptors[1];                          /* The output file */
 
   switch (c) {
     case '\n':                                          // Newlines are replaced with a break.
@@ -167,109 +179,135 @@ void processline(char *cmd) { /*{{{*/
       break;
     case 'a':                                           // Look for the string 'author:'
       if(cimemcmp(cmd, "author:", 7) == 0) {
-        cmd += 7;                                       /* -eat the `author:` string. */
+        cmd += 7;                                       /* Eat the `author:` string. */
         dprintf(fd, ".Au%s", cmd);
         break;
       }
-    case 'd':                                           // date
+    case 'd':                                           // Date
       if(cimemcmp(cmd, "date:", 5) == 0) {
-        cmd += 5;
+        cmd += 5;                                       /* Eat the `date:` string */
         dprintf(fd, ".Dd%s", cmd);
         break;
       }
     case 't':                                           // Look for the string 'title:'
       if(cimemcmp(cmd, "title:", 6) == 0) {
-        cmd += 6;                                       /* -eat the `title:` string. */
+        cmd += 6;                                       /* Eat the `title:` string. */
         dprintf(fd, ".Dt%s.Os\n", cmd);
         break;
       }
-    case '#':                                           // section break (heading)
-      if (cimemcmp(cmd, "# OPTIONS", 9) == 0) {
-        dprintf(fd, ".Sh %s.Bl -tag -width Ds\n", ++cmd);
-        } else {
-          dprintf(fd, ".Sh %s", ++cmd);
-        }
-        break;
-    case '[':                                           // Start of a list
-        cmd++;
-        if (*cmd == '\n')
-          dprintf(fd, ".Bl -tag -width Ds\n");
-        break;
-    case ']':                                           // End of a list
-        cmd++;
-        if (*cmd == '\n')                               /* -However, if the line was only a r-bracket */
-          dprintf(fd, ".El\n");                         /*  then we need to close the item list. */
-        break;
-    case '-':                                           // A list item / single dash is also a list terminator
-      ++cmd;
-      if (*cmd == '\n')                                 /* -However, if the line was only a dash */
-        dprintf(fd, ".El\n");                           /*  than we need to close the item list. */
-      else
-        dprintf(fd, ".It Fl %s", cmd);
+    case '#':                                           // Section break (heading)
+      dprintf(fd, ".Sh %s", ++cmd);
       break;
-    case '~':                                           // A list terminator
-      cmd = 0;                                          /* -not sure; *shoulder shrug* */
+    case '[':                                           // Start of an optional argument
+      cmd++;                                            /* Eat the bracket */
+      dprintf(fd, ".Op ");
+      if (*cmd == '-') {
+        dprintf(fd, "Fl ");
+        do {                                            /* Print the chars until space char */
+          ++cmd;                                        /* eat the dash */
+          if (*cmd != ' ')
+            dprintf(fd, "%c", *cmd);
+        } while (*cmd != ' ');
+        if (*cmd == ' ') {                              /* If we've found a space, this means we've found an optional argument. */
+          dprintf(fd, " Ar ");
+          do {                                          /* Print the chars until we find the closing bracket */
+            ++cmd;                                      /* eat the space */
+            if (*cmd != ']')
+              dprintf(fd, "%c", *cmd);
+          } while (*cmd != ']');
+        }
+        ++cmd;                                          /* Eat the last bracket */
+      } else {                                          /* Now we have to assume this is just a plain optional arguemnt */
+          dprintf(fd, " Ar ");
+          do {                                          /* Print the chars until we find the closing bracket */
+            if (*cmd != ']')
+              dprintf(fd, "%c", *cmd);
+            ++cmd;                                      /* Eat the closing bracket */
+          } while (*cmd != ']');
+        }
+
+      dprintf(fd, "\n");
+      break;
+    case '-':                                           // A list item or a single dash is a list terminator
+      ++cmd;                                            /* eat the dash */
+      if(listblock == 0) {                              /* Check to see if the `listblock` flag has been set.
+                                                           if it hasn't, create the list block and set the flag.  */
+        dprintf(fd, ".Bl -tag -width Ds\n");
+        listblock = 1;
+      }
+      if (listblock == 1 && *cmd != '\n')               /* If the listblock flag has been set, and the next char is NOT
+                                                           a newline, this is just a list item. */
+        dprintf(fd, ".It Fl %s", cmd);
+      if (*cmd == '\n' && listblock == 1) {             /* However, if the line was only a dash
+                                                           than we need to close the item list. */
+        dprintf(fd, ".El\n");
+        listblock = 0;
+      }
+      break;
+    case '~':                                           // An alternate list terminator
       dprintf(fd, ".El\n");
       break;
-    case '<':                                           // The start of a `no format` section.
+    case '<':                                           // The start of a `no format` section (this is also the
+                                                        // symbol used in vim's docformat).
       dprintf(fd, ".Bd -literal -offset indent\n");
-      stripwhitespace = 0;                              /* -Disable stripwhitespace. */
+      stripwhitespace = 0;                              /* Disable stripwhitespace. */
+      codeblock = 1;                                    /* Set the `codeblock` flag */
       break;
     case '>':                                           // The end of a `no format` section
       dprintf(fd, ".Ed\n");
       stripwhitespace = 1;
+      codeblock = 0;
       break;
     case '*':                                           // Bold
-        dprintf(fd, ".Sy ");
-        do {                                            /* -print this chars until not star */
-          ++cmd;                                        /* eat the star */
-          if (*cmd != '*')
-            dprintf(fd, "%c", *cmd);
-        } while (*cmd != '*');
-        ++cmd;                                          /* eat the last star */
-//:~          dprintf(fd, "\n.Pp\n");
-        dprintf(fd, "\n");
+      dprintf(fd, ".Sy ");
+      do {                                              /* Print the chars until NOT star */
+        ++cmd;                                          /* Eat the star */
+        if (*cmd != '*')
+          dprintf(fd, "%c", *cmd);
+      } while (*cmd != '*');
+      ++cmd;                                            /* Eat the last star */
+      dprintf(fd, "\n");
       break;
     case '_':                                           // Italic
-        dprintf(fd, ".Em ");
-        do {                                            /* -print this chars until not star */
-          ++cmd;                                        /* eat the underscore */
-          if (*cmd != '_')
-            dprintf(fd, "%c", *cmd);
-        } while (*cmd != '_');
-        ++cmd;                                          /* eat the last underscore */
-        dprintf(fd, "\n");
+      dprintf(fd, ".Em ");
+      do {                                              /* Print this chars until NOT underscore */
+        ++cmd;                                          /* Eat the underscore */
+        if (*cmd != '_')
+          dprintf(fd, "%c", *cmd);
+      } while (*cmd != '_');
+      ++cmd;                                            /* Eat the last underscore */
+      dprintf(fd, "\n");
       break;
     case '^':                                           // Reference
-        dprintf(fd, ".Sx ");
-        do {                                            /* -print this chars until not star */
-          ++cmd;                                        /* eat the underscore */
-          if (*cmd != '^')
-            dprintf(fd, "%c", *cmd);
-        } while (*cmd != '^');
-        ++cmd;                                          /* eat the last underscore */
-        dprintf(fd, "\n");
+      dprintf(fd, ".Sx ");
+      do {                                              /* Print this chars until NOT carret */
+        ++cmd;                                          /* Eat the carret */
+        if (*cmd != '^')
+          dprintf(fd, "%c", *cmd);
+      } while (*cmd != '^');
+      ++cmd;                                            /* eat the last carret */
+      dprintf(fd, "\n");
       break;
-    case '`':                                           // Code block -
+    case '`':                                           // Code block
                                                         //   In markdown, READMEs, forum posts, etc.
-                                                        //   codeblocks are defined with three (3) graves.
+                                                        //   codeblocks are defined with three (3) backticks.
 
-      ++cmd;                                            /* -Eat the first grave */
+      ++cmd;                                            /* Eat the first backtick */
 
-      if (*cmd != '`')                                  /* -if we havent found another grave sym, put it back. */
+      if (*cmd != '`')                                  /* If we havent found another backtick sym, put it back. */
         dprintf(fd, "`");
 
-      if (*cmd == '`') {                                /* -If we have another grave symbol... */
-        if(codeblock == 0) {                            /* -Check to see if the `codeblock` flag has been set. */
+      if (*cmd == '`') {                                /* If we have another backtick symbol... */
+        if(codeblock == 0) {                            /* Check to see if the `codeblock` flag has been set. */
           dprintf(fd, ".Bd -literal -offset indent\n");
-          stripwhitespace = 0;                          /* -Disable stripwhitespace. */
+          stripwhitespace = 0;                          /* Disable stripwhitespace. */
           codeblock = 1;
         } else if (codeblock == 1) {
           dprintf(fd, ".Ed\n");
           stripwhitespace = 1;
           codeblock = 0;
         }
-        do                                              /* -Eat the graves until the newline char */
+        do                                              /* Eat the backticks until the newline char */
           ++cmd;
         while (*cmd != '\n');
         break;
@@ -286,7 +324,7 @@ void processline(char *cmd) { /*{{{*/
 
 /*
  * readline --
- *  Reads a line from file descriptor and stores the string in buf.
+ *      Reads a line from file descriptor and stores the string in buf.
  *
  * ARGS
  *  fd       -   file descriptor
@@ -324,13 +362,6 @@ int readline(int fd, char *buf, int nbytes) { /*{{{*/
 
 //------------------------------------------------------*- C -*------
 // Main
-//
-// ARGS
-//  argc            :   number of args
-//  argv[]          :   array of arguments
-//
-// RETURN
-//  int
 //-------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
