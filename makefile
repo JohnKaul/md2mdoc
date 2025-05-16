@@ -1,3 +1,4 @@
+# vim: set noet
 #===---------------------------------------------*- makefile -*---===
 #: md2mdoc
 #===--------------------------------------------------------------===
@@ -15,9 +16,8 @@ TARGET			= md2mdoc
 $(TARGET) : SOURCES	= \
 		  src/main.c
 
-# NOTE:
-# -Prefix set to $(HOME) so that binaries will be installed to %(HOME)/bin
-prefix	        :=	$(HOME)/bin
+PREFIX	        :=	/usr/local/bin
+MANPATH			:=	/usr/local/share/man/man7
 
 CC				:= cc
 CFLAGS			:= -fno-exceptions -pipe -Wall -W 
@@ -30,7 +30,7 @@ CP              := cp
 #--------------------------------------------------------------------
 md2mdoc: clean
 	MD2MDOC_TARGET='md2mdoc'
-		@$(CC) $(CFLAGS) -o md2mdoc $(SOURCES)
+		${_q)$(CC) $(CFLAGS) -o md2mdoc $(SOURCES)
 
 .PHONY: clean
 clean:
@@ -43,19 +43,16 @@ almostclean:
 .PHONY: tags
 tags:
 	$(_q)$(CTAGS) -R .
-#-X- 	$(_q)$(CTAGS) $(sources)
 
 .PHONY: install
 install:
-	$(_q)$(CP) md2mdoc $(prefix)
-	$(_q)$(CP) ./doc/md2mdoc.7 $(prefix)/man/man7
+	$(_q)$(CP) md2mdoc $(PREFIX)
+	$(_q)$(CP) ./doc/md2mdoc.7 $(MANPATH)
 
 .PHONY: uninstall
 uninstall:
-	$(_q)$(RM) $(prefix)/md2mdoc
-	$(_q)$(RM) $(prefix)/man/man7/md2mdoc.7
+	$(_q)$(RM) $(PREFIX)/md2mdoc
+	$(_q)$(RM) $(MANPATH)/md2mdoc.7
 
 .PHONY: all
 all: md2mdoc tags almostclean
-
-# vim: set noet
