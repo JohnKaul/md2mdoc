@@ -16,14 +16,12 @@ This project is a simple markdown to mdoc (for man pages) converter.
 This file will convert a simple markdown file to use mdoc format. This
 will allow for easier man page creation.
 
-NOTE: This program is just using character subsituion (it is not an AST).
-
 This tool was built to help myself create man pages. I normally keep
 project notes, documentation in a simple markdown format. I use these
 notes in my readme's, documentation things, etc. while I am making
 large decisions about how my program should operate. This utility, I
 thought, would allow me to keep my notes in a simple markdown format
-until my project notes/design decissions are more complete and/or
+until my project notes/design decisions are more complete and/or
 ready to be moved to a more formal format (mdoc).
 
 For example, in the design phase of a project I will create a
@@ -84,7 +82,7 @@ To clone a copy:
 
 ```bash
 $ cd ~/<place>/<you>/<keep>/<your>/<code>
-$ git clone git@gitlab.localdomain:john/md2mdoc.git
+$ git clone git@git:john/md2mdoc.git
 ```
 
 ## BUILD INSTRUCTIONS
@@ -112,6 +110,9 @@ $ make
 8.  Use the imperative mood in the subject line
 9.  Wrap the body at 72 characters
 10. Use the body to explain what and why vs. how
+
+## HISTORY
+* Created for my personal use.
 
 ## AUTHOR
 * John Kaul - john.kaul@outlook.com
