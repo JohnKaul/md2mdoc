@@ -1,0 +1,31 @@
+#!/bin/sh
+
+#: configure
+# This simple script will set options in the makefile.
+
+prefix='\/usr\/local\/bin'
+Q='QUIET		:=      YES'
+for arg in "$@"; do
+    case "$arg" in
+    --prefix=*)
+        prefix=`echo $arg | sed 's/--prefix=//'`
+        ;;
+    --quiet)
+        ;;
+    --verbose)
+        Q='QUIET		:=	NO'
+        ;;
+    --help)
+        echo 'usage: ./configure [options]'
+        echo 'options:'
+        echo '  --prefix=<path>: installation prefix (default /usr/local/bin)'
+        echo '  --quiet: turn off make prompts (default)'
+        echo '  --verbose: turn on make prompts'
+        echo 'all invalid options are silently ignored'
+        exit 0
+        ;;
+    esac
+done
+sed -i '' "s/^PREFIX.*/PREFIX	        :=	$PREFIX/g" makefile
+sed -i '' "s/^QUIET.*/$Q/g" makefile
+echo 'configuration complete, type `make` to build.'
