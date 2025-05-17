@@ -11,7 +11,7 @@ TARGET			= md2mdoc
 $(TARGET) : SOURCES	= \
 		  src/main.c
 
-PREFIX	        :=	
+PREFIX			:=	/usr/local/bin
 MANPATH			:=	/usr/local/share/man/man7
 
 CC				:= cc
