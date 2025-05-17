@@ -13,8 +13,6 @@ for arg in "$@"; do
         echo 'usage: ./configure [options]'
         echo 'options:'
         echo '  --prefix=<path>: installation prefix (default /usr/local/bin)'
-        echo '  --quiet: turn off make prompts (default)'
-        echo '  --verbose: turn on make prompts'
         echo 'all invalid options are silently ignored'
         exit 0
         ;;
