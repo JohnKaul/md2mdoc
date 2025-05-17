@@ -61,11 +61,6 @@ Will get converted to:
     .Sh  DESCRIPTION
     A Long project description about the project here.
     .Pp
-    By sourcing this `hints` file in Vim, indexed definitions
-    (including `subroutines`, `typedefs`, `defines`, `structs`,
-    `enums`, and `unions`) can be displayed on the status line when
-    typing of the definition in the buffer.
-    .Pp
     .Sh  OPTIONS
     .Bl -tag -width Ds
     .It Fl a
