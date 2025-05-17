@@ -3,11 +3,6 @@
 #: md2mdoc
 #===--------------------------------------------------------------===
 
-# Set the following variable to YES/NO to make this makefile quiet.
-QUIET			:=      YES
-
-_q = $(subst YES,@,$(subst NO,,$(QUIET)))
-
 #--------------------------------------------------------------------
 # Set the target name and source file list.
 #--------------------------------------------------------------------
@@ -16,7 +11,7 @@ TARGET			= md2mdoc
 $(TARGET) : SOURCES	= \
 		  src/main.c
 
-PREFIX	        :=	/usr/local/bin
+PREFIX	        :=	
 MANPATH			:=	/usr/local/share/man/man7
 
 CC				:= cc
@@ -30,29 +25,30 @@ CP              := cp
 #--------------------------------------------------------------------
 md2mdoc: clean
 	MD2MDOC_TARGET='md2mdoc'
-		${_q)$(CC) $(CFLAGS) -o md2mdoc $(SOURCES)
+		$(CC) $(CFLAGS) -o md2mdoc $(SOURCES)
 
 .PHONY: clean
 clean:
-	$(_q)$(REMOVE) md2mdoc $(objects)
+	MD2MDOC_CLEAN='md2mdoc'
+		$(REMOVE) md2mdoc $(objects)
 
 .PHONY: almostclean
 almostclean:
-	$(_q)$(RM) $(objects)
+	$(RM) $(objects)
 
 .PHONY: tags
 tags:
-	$(_q)$(CTAGS) -R .
+	$(CTAGS) -R .
 
 .PHONY: install
 install:
-	$(_q)$(CP) md2mdoc $(PREFIX)
-	$(_q)$(CP) ./doc/md2mdoc.7 $(MANPATH)
+	$(CP) md2mdoc $(PREFIX)
+	$(CP) ./doc/md2mdoc.7 $(MANPATH)
 
 .PHONY: uninstall
 uninstall:
-	$(_q)$(RM) $(PREFIX)/md2mdoc
-	$(_q)$(RM) $(MANPATH)/md2mdoc.7
+	$(RM) $(PREFIX)/md2mdoc
+	$(RM) $(MANPATH)/md2mdoc.7
 
 .PHONY: all
 all: md2mdoc tags almostclean
