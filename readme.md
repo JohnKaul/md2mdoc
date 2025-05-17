@@ -87,11 +87,29 @@ $ git clone git@git:john/md2mdoc.git
 
 ## BUILD INSTRUCTIONS
 
-This project uses MAKE.
+This project uses MAKE to build, install and uninstall.
 
+To build:
 ```bash
 $ cd md2mdoc
 $ make
+```
+
+To install:
+```bash
+% doas make install
+```
+
+To uninstall:
+```bash
+% doas make uninstall
+```
+
+I have also included a simple configure script which can be used to change the location for the install.
+
+To change the install location you can use something like the following:
+```bash
+% ./configure --prefix=/home/john/bin
 ```
 
 ## CONTRIBUTION GUIDELINES
