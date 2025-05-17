@@ -115,4 +115,4 @@ $ make
 * Created for my personal use.
 
 ## AUTHOR
-* John Kaul - john.kaul@outlook.com
+* John Kaul
