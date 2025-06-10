@@ -53,7 +53,8 @@ Will get converted to:
 
 ```mdoc
     .Sh  NAME
-    projectname -- my project to simplify the world.
+    .Nm projectname 
+    .Nd my project to simplify the world.
     .Pp
     .Sh  SYNOPSIS
     projectname mdfile mdocfile
