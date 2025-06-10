@@ -26,6 +26,24 @@
 // author:     ->  .Au     : Author
 // date:       ->  .Dd     : Date
 // title:      ->  .Dt .Os : Document title.
+// # NAME      ->          : md2mdoc will assume the next line will
+//                           be a name and a description. This should
+//                           be formatted as the example below.
+// Example:
+//      # NAME
+//      projectname -- This is a test
+//
+//      # SYNOPSYS
+//      projectname
+//      [-abc argument]
+//      variable
+//
+//      # OPTIONS
+//      -a
+//          a line for the `a` flag.
+//      -b
+//          a line for the `b` flag.
+//      ...
 //===-------------------------------------------------------------===
 
 #include <ctype.h>
@@ -70,6 +88,7 @@ int filedescriptors[2];                                 /* An array to hold open
 int stripwhitespace = 1;                                /* Used to pause/stop stripping whitespace */
 int codeblock = 0;                                      /* Used for middle of codeblock. */
 int listblock = 0;                                      /* Used for list blocks. */
+int nameflag = 0;                                       /* Set when this program find the string: "# NAME". */
 
 /*
  * TabAbortCode -- Enums for standard errors.
@@ -196,7 +215,16 @@ void processline(char *cmd) { /*{{{*/
         break;
       }
     case '#':                                           // Section break (heading)
-      dprintf(fd, ".Sh %s", ++cmd);
+      dprintf(fd, ".Sh%s", ++cmd);
+      if(cimemcmp(cmd, " NAME", 5) == 0) {              /* If we've found a "NAME" heading, we can assume
+                                                         * the section looks something like:
+                                                         *      # NAME
+                                                         *      ProjectName -- Brief Decription
+                                                         * so we set some flags for the default
+                                                         * condition of this case statment to set
+                                                         * the .Nm and .Nd mdoc macros.  */
+        nameflag = 1;
+      }
       break;
     case '[':                                           // Start of an optional argument
       cmd++;                                            /* Eat the bracket */
@@ -316,6 +344,29 @@ void processline(char *cmd) { /*{{{*/
       if(stripwhitespace)
         while (isspace((unsigned char)*cmd))
           ++cmd;
+
+      if(nameflag == 1) {                               /* If we are supposed to process a name... */
+        dprintf(fd, ".Nm ");
+        do {                                            /* Print this chars until NOT a dash */
+          if (*cmd != '-')
+            dprintf(fd, "%c", *cmd);
+          ++cmd;                                        /* Eat the char */
+          if (*cmd == '-') {                            /* If we've encounted a dash, check for a doubledash. */
+            if(cimemcmp(cmd, "--", 2) == 0) {           /* double dashes signifies a `namedescription`. */
+              cmd += 2;                                 /* Eat the `--` string */
+              dprintf(fd, "\n.Nd");
+              do {
+                if (*cmd != '\n' || \
+                    *cmd != ' ')
+                  dprintf(fd, "%c", *cmd);
+                ++cmd;
+              } while (*cmd != '\n');
+            }
+          }
+        } while (*cmd != '\n');
+        nameflag = 0;                                   /* turn off the `nameflag`. */
+      }
+
       dprintf(fd, "%s", cmd);
       break;
   }
