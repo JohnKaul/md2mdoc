@@ -3,13 +3,14 @@
 .Os
 .Au John Kaul
 .Pp
-.Sh  NAME
-md2mdoc -- a simple markdown to mdoc converter.
+.Sh NAME
+.Nm md2mdoc 
+.Nd a simple markdown to mdoc converter.
 .Pp
-.Sh  SYNOPSIS
+.Sh SYNOPSIS
 md2mdoc <input MDfile> <output MDOCfile>
 .Pp
-.Sh  DESCRIPTION
+.Sh DESCRIPTION
 This utility will convert simple markdown syntax characters to mdoc
 (man page) format characters. It will remove all leading spaces from
 lines unless within a code block.
@@ -24,7 +25,7 @@ sections can be added/deleted easier. When the time comes to create
 more formal documentaiton, this utility aids in that process (assuming
 your markdown isn't too complicated).
 .Pp
-.Sh  CHARACTER CONVERSION TABLE
+.Sh CHARACTER CONVERSION TABLE
 .Pp
 .Bd -literal -offset indent
     #           ->  .Sh     : section headers
@@ -42,9 +43,12 @@ your markdown isn't too complicated).
     author:     ->  .Au     : Author
     date:       ->  .Dd     : Date
     title:      ->  .Dt .Os : Document title.
+    # NAME      ->          : md2mdoc will assume the next line will
+                              be a name and a description. This should
+                              be formatted as the example below.
 .Ed
 .Pp
-.Sh  SAMPLE MARKDOWN EXAMPLE
+.Sh SAMPLE MARKDOWN EXAMPLE
 .Pp
 .Bd -literal -offset indent
     date: Feb 03 2024
@@ -101,8 +105,8 @@ All the symbols this program finds are located at the beginning of
 the line. -i.e. This program is not good at parsing the entire
 strings looking for symbols.
 .Pp
-.Sh  HISTORY
+.Sh HISTORY
 Created for personal use.
 .Pp
-.Sh  AUTHOR
+.Sh AUTHOR
 John Kaul (john.kaul@outlook.com)

@@ -41,6 +41,9 @@ your markdown isn't too complicated).
     author:     ->  .Au     : Author
     date:       ->  .Dd     : Date
     title:      ->  .Dt .Os : Document title.
+    # NAME      ->          : md2mdoc will assume the next line will
+                              be a name and a description. This should
+                              be formatted as the example below.
 >
 
 # SAMPLE MARKDOWN EXAMPLE
