@@ -44,11 +44,16 @@ your markdown isn't too complicated).
     # NAME      ->          : md2mdoc will assume the next line will
                               be a name and a description. This should
                               be formatted as the example below.
+   <!--         ->          : Start of a comment block.
+   -->          ->          : End of a comment block.
 >
 
 # SAMPLE MARKDOWN EXAMPLE
 
 <md
+    <!--
+        This is a comment block and should be ignored.
+    -->
     date: Feb 03 2024
     title: progname 7
     author: John Kaul
