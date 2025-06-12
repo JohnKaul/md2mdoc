@@ -349,9 +349,6 @@ void processline(char *cmd) { /*{{{*/
           stripwhitespace = 1;
           codeblock = 0;
         }
-        do                                              /* Eat the backticks until the newline char */
-          ++cmd;
-        while (*cmd != '\n');
         break;
       }
     default:
