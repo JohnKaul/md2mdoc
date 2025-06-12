@@ -29,6 +29,11 @@
 // # NAME      ->          : md2mdoc will assume the next line will
 //                           be a name and a description. This should
 //                           be formatted as the example below.
+//  <!---
+//  your comment goes here
+//  and here
+//  -->
+//
 // Example:
 //      # NAME
 //      projectname -- This is a test
@@ -86,9 +91,10 @@ int readline(int fd, char *buf, int nbytes);            /* Read a line of text f
 char *curfile;                                          /* Current input file name */
 int filedescriptors[2];                                 /* An array to hold open file descriptors. */
 int stripwhitespace = 1;                                /* Used to pause/stop stripping whitespace */
-int codeblock = 0;                                      /* Used for middle of codeblock. */
-int listblock = 0;                                      /* Used for list blocks. */
-int nameflag = 0;                                       /* Set when this program find the string: "# NAME". */
+int codeblock       = 0;                                /* Used for middle of codeblock. */
+int listblock       = 0;                                /* Used for list blocks. */
+int nameflag        = 0;                                /* Set when this program find the string: "# NAME". */
+int commentflag     = 0;                                /* Used for comment blocks (HTML style <!-- comment --> */
 
 /*
  * TabAbortCode -- Enums for standard errors.
@@ -246,17 +252,21 @@ void processline(char *cmd) { /*{{{*/
         }
         ++cmd;                                          /* Eat the last bracket */
       } else {                                          /* Now we have to assume this is just a plain optional arguemnt */
-          dprintf(fd, " Ar ");
-          do {                                          /* Print the chars until we find the closing bracket */
-            if (*cmd != ']')
-              dprintf(fd, "%c", *cmd);
-            ++cmd;                                      /* Eat the closing bracket */
-          } while (*cmd != ']');
-        }
+        dprintf(fd, " Ar ");
+        do {                                            /* Print the chars until we find the closing bracket */
+          if (*cmd != ']')
+            dprintf(fd, "%c", *cmd);
+          ++cmd;                                        /* Eat the closing bracket */
+        } while (*cmd != ']');
+      }
 
       dprintf(fd, "\n");
       break;
     case '-':                                           // A list item or a single dash is a list terminator
+      if(cimemcmp("-->", cmd, 3) == 0) {                /* end of a comment block */
+        commentflag = 0;
+        break;
+      }
       ++cmd;                                            /* eat the dash */
       if(listblock == 0) {                              /* Check to see if the `listblock` flag has been set.
                                                            if it hasn't, create the list block and set the flag.  */
@@ -277,6 +287,10 @@ void processline(char *cmd) { /*{{{*/
       break;
     case '<':                                           // The start of a `no format` section (this is also the
                                                         // symbol used in vim's docformat).
+      if (cimemcmp("<!--", cmd, 4) == 0) {              /* Start of a comment block */
+        commentflag = 1;
+        break;
+      }
       dprintf(fd, ".Bd -literal -offset indent\n");
       stripwhitespace = 0;                              /* Disable stripwhitespace. */
       codeblock = 1;                                    /* Set the `codeblock` flag */
@@ -341,9 +355,14 @@ void processline(char *cmd) { /*{{{*/
         break;
       }
     default:
-      if(stripwhitespace)
-        while (isspace((unsigned char)*cmd))
+      if(commentflag == 1) {
+        break;
+      }
+      if(stripwhitespace) {
+        while (isspace((unsigned char)*cmd)) {
           ++cmd;
+        }
+      }
 
       if(nameflag == 1) {                               /* If we are supposed to process a name... */
         dprintf(fd, ".Nm ");
