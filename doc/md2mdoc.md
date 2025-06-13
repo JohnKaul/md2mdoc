@@ -25,8 +25,11 @@ your markdown isn't too complicated).
 
 # CHARACTER CONVERSION TABLE
 
-<md
+```md
     #           ->  .Sh     : section headers
+    # NAME      ->          : md2mdoc will assume the next line will
+                              be a name and a description. This should
+                              be formatted as the example below.
     blank line  ->  .Pp     : Blank Line
     -<char>     ->  .It Fl  : List element
     -           ->  .El     : A single dash is assumed to be a `list end`.
@@ -40,17 +43,15 @@ your markdown isn't too complicated).
     [           ->  .Op     : Optional argument
     author:     ->  .Au     : Author
     date:       ->  .Dd     : Date
-    title:      ->  .Dt .Os : Document title.
-    # NAME      ->          : md2mdoc will assume the next line will
-                              be a name and a description. This should
-                              be formatted as the example below.
+    title:      ->  .Dt .Os : Document title with section number. See
+                              manual section numbers and example below.
    <!--         ->          : Start of a comment block.
    -->          ->          : End of a comment block.
->
+```
 
 # SAMPLE MARKDOWN EXAMPLE
 
-<md
+```md
     <!--
         This is a comment block and should be ignored.
     -->
@@ -84,11 +85,11 @@ your markdown isn't too complicated).
     -
 
     # CODE EXAMPLE
-    <c
+    ```c
         unsigned long   str_version;    /* version number */
         unsigned long   str_numstr;     /* # of strings in the file */
         unsigned long   str_longlen;    /* length of longest string */
-    >
+    ```
 
     *WARNING*
         Never do the above.
@@ -101,15 +102,39 @@ your markdown isn't too complicated).
     ^this^
     ^that^
     ^theotherthing^
->
+```
 
 _NOTE_
     All the symbols this program finds are located at the beginning of
     the line. -i.e. This program is not good at parsing the entire
     strings looking for symbols.
 
+
+# MANUAL SECTIONS
+The standard sections for man pages:
+```md
+       1      User Commands
+       2      System Calls
+       3      C Library Functions
+       4      Devices and Special Files
+       5      File Formats and Conventions
+       6      Games et. Al.
+       7      Miscellanea
+       8      System Administration tools and Deamons
+```
+
+# MARKDOWN COMMENTS
+A comments style header can be kept in the markdown file which md2mdoc
+will ignore during processing. The comment style is HTML Tag style
+which is also ignored in other markdown processors.
+
+# SEE ALSO
+^mdoc(7)^
+^mandoc(1)^
+^man(1)^
+
 # HISTORY
-Created for personal use.
+Created for my personal use.
 
 # AUTHOR
-John Kaul (john.kaul@outlook.com)
+John Kaul
