@@ -11,21 +11,30 @@ TARGET			= md2mdoc
 $(TARGET) : SOURCES	= \
 		  src/main.c
 
-PREFIX			:=	/usr/local/bin
-MANPATH			:=	/usr/local/share/man/man7
+PREFIX			:=	/Users/john/bin
+MANPATH			:=	/Users/john/bin/man/man7
 
 CC				:= cc
-CFLAGS			:= -fno-exceptions -pipe -Wall -W 
+CFLAGS			:= -fno-exceptions -pipe -Wall -W
 REMOVE			:= rm -f
 CTAGS           := ctags
 CP              := cp
+
+# for BSD
+HASH_VERSION:sh	= printf "$(date '+%Y.%m.%d')."; git rev-parse --short=7 HEAD
+# for GNU (ignored by non-gmake versions)
+HASH_VERSION 	?= $(shell git rev-parse --short=7 HEAD)
+
+#-X- HASH_VERSION=$(printf "$(date '+%Y.%m.%d')."; git rev-parse --short=7 HEAD)
 
 #--------------------------------------------------------------------
 # Define the target compile instructions.
 #--------------------------------------------------------------------
 md2mdoc: clean
 	MD2MDOC_TARGET='md2mdoc'
+		@echo "const char program_version[] = \"${HASH_VERSION}\";" > src/version.h
 		$(CC) $(CFLAGS) -o md2mdoc $(SOURCES)
+		@rm src/version.h
 
 .PHONY: clean
 clean:

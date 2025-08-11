@@ -51,6 +51,8 @@
 //      ...
 //===-------------------------------------------------------------===
 
+#include "version.h"
+
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -72,8 +74,6 @@
 //-------------------------------------------------------------------
 // Constants Declarations
 //-------------------------------------------------------------------
-const char program_version[] = "0.0.3";
-
 #define W_FLAGS (O_WRONLY | O_CREAT)                    /* Write flags for file output */
 #define W_PERMS (S_IRUSR | S_IWUSR)                     /* Write permissions for file output */
 
@@ -138,7 +138,7 @@ const static char *abortMsg[] = {
  *  }
  */
 void AbortTranslation(enum TAbortCode ac) { /*{{{*/
-  fprintf(stderr, "**** Fatal translation error: %s\n", abortMsg[-ac]);
+  fprintf(stderr, "**** Error: %s\n", abortMsg[-ac]);
   exit(ac);
 } /*}}}*/
 
@@ -194,198 +194,200 @@ int cimemcmp(const void *s1, const void *s2, size_t n) { /*{{{*/
  *      simple character substion.
  */
 void processline(char *cmd) { /*{{{*/
-  int c;                                                /* Current character */
-  c = *cmd;                                             /* Start at the beginning of the string */
-  int fd = filedescriptors[1];                          /* The output file */
+    int c;                                                /* Current character */
+    c = *cmd;                                             /* Start at the beginning of the string */
+    int fd = filedescriptors[1];                          /* The output file */
 
-  switch (c) {
-    case '\n':                                          // Newlines are replaced with a break.
-      dprintf(fd, ".Pp%s", cmd);
-      break;
-    case 'a':                                           // Look for the string 'author:'
-      if(cimemcmp(cmd, "author:", 7) == 0) {
-        cmd += 7;                                       /* Eat the `author:` string. */
-        dprintf(fd, ".Au%s", cmd);
+    switch (c) {
+      case '\n':                                          // Newlines are replaced with a break.
+        dprintf(fd, ".Pp%s", cmd);
         break;
-      }
-    case 'd':                                           // Date
-      if(cimemcmp(cmd, "date:", 5) == 0) {
-        cmd += 5;                                       /* Eat the `date:` string */
-        dprintf(fd, ".Dd%s", cmd);
+      case 'a':                                           // Look for the string 'author:'
+        if(cimemcmp(cmd, "author:", 7) == 0) {
+          cmd += 7;                                       /* Eat the `author:` string. */
+          dprintf(fd, ".Au%s", cmd);
+          break;
+        }
+      case 'd':                                           // Date
+        if(cimemcmp(cmd, "date:", 5) == 0) {
+          cmd += 5;                                       /* Eat the `date:` string */
+          dprintf(fd, ".Dd%s", cmd);
+          break;
+        }
+      case 't':                                           // Look for the string 'title:'
+        if(cimemcmp(cmd, "title:", 6) == 0) {
+          cmd += 6;                                       /* Eat the `title:` string. */
+          dprintf(fd, ".Dt%s.Os\n", cmd);
+          break;
+        }
+      case '#':                                           // Section break (heading)
+        dprintf(fd, ".Sh%s", ++cmd);
+        if(cimemcmp(cmd, " NAME", 5) == 0) {              /* If we've found a "NAME" heading, we can assume
+                                                           * the section looks something like:
+                                                           *      # NAME
+                                                           *      ProjectName -- Brief Decription
+                                                           * so we set some flags for the default
+                                                           * condition of this case statment to set
+                                                           * the .Nm and .Nd mdoc macros.  */
+          nameflag = 1;
+        }
         break;
-      }
-    case 't':                                           // Look for the string 'title:'
-      if(cimemcmp(cmd, "title:", 6) == 0) {
-        cmd += 6;                                       /* Eat the `title:` string. */
-        dprintf(fd, ".Dt%s.Os\n", cmd);
-        break;
-      }
-    case '#':                                           // Section break (heading)
-      dprintf(fd, ".Sh%s", ++cmd);
-      if(cimemcmp(cmd, " NAME", 5) == 0) {              /* If we've found a "NAME" heading, we can assume
-                                                         * the section looks something like:
-                                                         *      # NAME
-                                                         *      ProjectName -- Brief Decription
-                                                         * so we set some flags for the default
-                                                         * condition of this case statment to set
-                                                         * the .Nm and .Nd mdoc macros.  */
-        nameflag = 1;
-      }
-      break;
-    case '[':                                           // Start of an optional argument
-      cmd++;                                            /* Eat the bracket */
-      dprintf(fd, ".Op ");
-      if (*cmd == '-') {
-        dprintf(fd, "Fl ");
-        do {                                            /* Print the chars until space char */
-          ++cmd;                                        /* eat the dash */
-          if (*cmd != ' ')
-            dprintf(fd, "%c", *cmd);
-        } while (*cmd != ' ');
-        if (*cmd == ' ') {                              /* If we've found a space, this means we've found an optional argument. */
+      case '[':                                           // Start of an optional argument
+        cmd++;                                            /* Eat the bracket */
+        dprintf(fd, ".Op ");
+        if (*cmd == '-') {
+          dprintf(fd, "Fl ");
+          do {                                            /* Print the chars until space char */
+            ++cmd;                                        /* eat the dash */
+            if (*cmd != ' ')
+              dprintf(fd, "%c", *cmd);
+          } while (*cmd != ' ');
+          if (*cmd == ' ') {                              /* If we've found a space, this means we've found an optional argument. */
+            dprintf(fd, " Ar ");
+            do {                                          /* Print the chars until we find the closing bracket */
+              ++cmd;                                      /* eat the space */
+              if (*cmd != ']')
+                dprintf(fd, "%c", *cmd);
+            } while (*cmd != ']');
+          }
+          ++cmd;                                          /* Eat the last bracket */
+        } else {                                          /* Now we have to assume this is just a plain optional arguemnt */
           dprintf(fd, " Ar ");
-          do {                                          /* Print the chars until we find the closing bracket */
-            ++cmd;                                      /* eat the space */
+          do {                                            /* Print the chars until we find the closing bracket */
             if (*cmd != ']')
               dprintf(fd, "%c", *cmd);
+            ++cmd;                                        /* Eat the closing bracket */
           } while (*cmd != ']');
         }
-        ++cmd;                                          /* Eat the last bracket */
-      } else {                                          /* Now we have to assume this is just a plain optional arguemnt */
-        dprintf(fd, " Ar ");
-        do {                                            /* Print the chars until we find the closing bracket */
-          if (*cmd != ']')
-            dprintf(fd, "%c", *cmd);
-          ++cmd;                                        /* Eat the closing bracket */
-        } while (*cmd != ']');
-      }
 
-      dprintf(fd, "\n");
-      break;
-    case '-':                                           // A list item or a single dash is a list terminator
-      if(cimemcmp("-->", cmd, 3) == 0) {                /* end of a comment block */
-        commentflag = 0;
+        dprintf(fd, "\n");
         break;
-      }
-      ++cmd;                                            /* eat the dash */
-      if(listblock == 0) {                              /* Check to see if the `listblock` flag has been set.
-                                                           if it hasn't, create the list block and set the flag.  */
-        dprintf(fd, ".Bl -tag -width Ds\n");
-        listblock = 1;
-      }
-      if (listblock == 1 && *cmd != '\n')               /* If the listblock flag has been set, and the next char is NOT
-                                                           a newline, this is just a list item. */
-        dprintf(fd, ".It Fl %s", cmd);
-      if (*cmd == '\n' && listblock == 1) {             /* However, if the line was only a dash
-                                                           than we need to close the item list. */
+      case '-':                                           // A list item or a single dash is a list terminator
+        if(cimemcmp("-->", cmd, 3) == 0) {                /* end of a comment block */
+          commentflag = 0;
+          break;
+        }
+        ++cmd;                                            /* eat the dash */
+        if(listblock == 0) {                              /* Check to see if the `listblock` flag has been set.
+                                                             if it hasn't, create the list block and set the flag.  */
+          dprintf(fd, ".Bl -tag -width Ds\n");
+          listblock = 1;
+        }
+        if (listblock == 1 && *cmd != '\n')               /* If the listblock flag has been set, and the next char is NOT
+                                                             a newline, this is just a list item. */
+          dprintf(fd, ".It Fl %s", cmd);
+        if (*cmd == '\n' && listblock == 1) {             /* However, if the line was only a dash
+                                                             than we need to close the item list. */
+          dprintf(fd, ".El\n");
+          listblock = 0;
+        }
+        break;
+      case '~':                                           // An alternate list terminator
         dprintf(fd, ".El\n");
-        listblock = 0;
-      }
-      break;
-    case '~':                                           // An alternate list terminator
-      dprintf(fd, ".El\n");
-      break;
-    case '<':                                           // The start of a `no format` section (this is also the
-                                                        // symbol used in vim's docformat).
-      if (cimemcmp("<!--", cmd, 4) == 0) {              /* Start of a comment block */
-        commentflag = 1;
         break;
-      }
-      dprintf(fd, ".Bd -literal -offset indent\n");
-      stripwhitespace = 0;                              /* Disable stripwhitespace. */
-      codeblock = 1;                                    /* Set the `codeblock` flag */
-      break;
-    case '>':                                           // The end of a `no format` section
-      dprintf(fd, ".Ed\n");
-      stripwhitespace = 1;
-      codeblock = 0;
-      break;
-    case '*':                                           // Bold
-      dprintf(fd, ".Sy ");
-      do {                                              /* Print the chars until NOT star */
-        ++cmd;                                          /* Eat the star */
-        if (*cmd != '*')
-          dprintf(fd, "%c", *cmd);
-      } while (*cmd != '*');
-      ++cmd;                                            /* Eat the last star */
-      dprintf(fd, "\n");
-      break;
-    case '_':                                           // Italic
-      dprintf(fd, ".Em ");
-      do {                                              /* Print this chars until NOT underscore */
-        ++cmd;                                          /* Eat the underscore */
-        if (*cmd != '_')
-          dprintf(fd, "%c", *cmd);
-      } while (*cmd != '_');
-      ++cmd;                                            /* Eat the last underscore */
-      dprintf(fd, "\n");
-      break;
-    case '^':                                           // Reference
-      dprintf(fd, ".Sx ");
-      do {                                              /* Print this chars until NOT carret */
-        ++cmd;                                          /* Eat the carret */
-        if (*cmd != '^')
-          dprintf(fd, "%c", *cmd);
-      } while (*cmd != '^');
-      ++cmd;                                            /* eat the last carret */
-      dprintf(fd, "\n");
-      break;
-    case '`':                                           // Code block
-                                                        //   In markdown, READMEs, forum posts, etc.
-                                                        //   codeblocks are defined with three (3) backticks.
-
-      ++cmd;                                            /* Eat the first backtick */
-
-      if (*cmd != '`')                                  /* If we havent found another backtick sym, put it back. */
-        dprintf(fd, "`");
-
-      if (*cmd == '`') {                                /* If we have another backtick symbol... */
-        if(codeblock == 0) {                            /* Check to see if the `codeblock` flag has been set. */
-          dprintf(fd, ".Bd -literal -offset indent\n");
-          stripwhitespace = 0;                          /* Disable stripwhitespace. */
-          codeblock = 1;
-        } else if (codeblock == 1) {
-          dprintf(fd, ".Ed\n");
-          stripwhitespace = 1;
-          codeblock = 0;
+      case '<':                                           // The start of a `no format` section (this is also the
+                                                          // symbol used in vim's docformat).
+        if (cimemcmp("<!--", cmd, 4) == 0) {              /* Start of a comment block */
+          commentflag = 1;
+          break;
         }
+        dprintf(fd, ".Bd -literal -offset indent\n");
+        stripwhitespace = 0;                              /* Disable stripwhitespace. */
+        codeblock = 1;                                    /* Set the `codeblock` flag */
         break;
-      }
-    default:
-      if(commentflag == 1) {
+      case '>':                                           // The end of a `no format` section
+        dprintf(fd, ".Ed\n");
+        stripwhitespace = 1;
+        codeblock = 0;
         break;
-      }
-      if(stripwhitespace) {
-        while (isspace((unsigned char)*cmd)) {
-          ++cmd;
-        }
-      }
-
-      if(nameflag == 1) {                               /* If we are supposed to process a name... */
-        dprintf(fd, ".Nm ");
-        do {                                            /* Print this chars until NOT a dash */
-          if (*cmd != '-')
+      case '*':                                           // Bold
+        dprintf(fd, ".Sy ");
+        do {                                              /* Print the chars until NOT star */
+          ++cmd;                                          /* Eat the star */
+          if (*cmd != '*')
             dprintf(fd, "%c", *cmd);
-          ++cmd;                                        /* Eat the char */
-          if (*cmd == '-') {                            /* If we've encounted a dash, check for a doubledash. */
-            if(cimemcmp(cmd, "--", 2) == 0) {           /* double dashes signifies a `namedescription`. */
-              cmd += 2;                                 /* Eat the `--` string */
-              dprintf(fd, "\n.Nd");
-              do {
-                if (*cmd != '\n' || \
-                    *cmd != ' ')
-                  dprintf(fd, "%c", *cmd);
-                ++cmd;
-              } while (*cmd != '\n');
-            }
-          }
-        } while (*cmd != '\n');
-        nameflag = 0;                                   /* turn off the `nameflag`. */
-      }
+        } while (*cmd != '*');
+        ++cmd;                                            /* Eat the last star */
+        dprintf(fd, "\n");
+        break;
+      case '_':                                           // Italic
+        dprintf(fd, ".Em ");
+        do {                                              /* Print this chars until NOT underscore */
+          ++cmd;                                          /* Eat the underscore */
+          if (*cmd != '_')
+            dprintf(fd, "%c", *cmd);
+        } while (*cmd != '_');
+        ++cmd;                                            /* Eat the last underscore */
+        dprintf(fd, "\n");
+        break;
+      case '^':                                           // Reference
+        dprintf(fd, ".Sx ");
+        do {                                              /* Print this chars until NOT carret */
+          ++cmd;                                          /* Eat the carret */
+          if (*cmd != '^')
+            dprintf(fd, "%c", *cmd);
+        } while (*cmd != '^');
+        ++cmd;                                            /* eat the last carret */
+        dprintf(fd, "\n");
+        break;
+      case '`':                                           // Code block
+                                                          //   In markdown, READMEs, forum posts, etc.
+                                                          //   codeblocks are defined with three (3) backticks.
 
-      dprintf(fd, "%s", cmd);
-      break;
-  }
+        ++cmd;                                            /* Eat the first backtick */
+
+        if (*cmd != '`')                                  /* If we havent found another backtick sym, put it back. */
+          dprintf(fd, "`");
+
+        if (*cmd == '`') {                                /* If we have another backtick symbol... */
+          if(codeblock == 0) {                            /* Check to see if the `codeblock` flag has been set. */
+            dprintf(fd, ".Bd -literal -offset indent\n");
+            stripwhitespace = 0;                          /* Disable stripwhitespace. */
+            codeblock = 1;
+          } else if (codeblock == 1) {
+            dprintf(fd, ".Ed\n");
+            stripwhitespace = 1;
+            codeblock = 0;
+          }
+          break;
+        }
+      default:
+        if(commentflag == 1) {
+          break;
+        }
+        if(stripwhitespace) {
+          while (isspace((unsigned char)*cmd)) {
+            ++cmd;
+          }
+        }
+
+        if(nameflag == 1) {                               /* If we are supposed to process a name... */
+          dprintf(fd, ".Nm ");
+          do {                                            /* Print this chars until NOT a dash */
+            if (*cmd != '-')
+              dprintf(fd, "%c", *cmd);
+            ++cmd;                                        /* Eat the char */
+            if (*cmd == '-') {                            /* If we've encounted a dash, check for a doubledash. */
+              if(cimemcmp(cmd, "--", 2) == 0) {           /* double dashes signifies a `namedescription`. */
+                cmd += 2;                                 /* Eat the `--` string */
+                dprintf(fd, "\n.Nd");
+                do {
+                  if (*cmd != '\n' || \
+                      *cmd != ' ')
+                    dprintf(fd, "%c", *cmd);
+                  ++cmd;
+                } while (*cmd != '\n');
+              }
+            }
+          } while (*cmd != '\n');
+          nameflag = 0;                                   /* turn off the `nameflag`. */
+        }
+        // Move to the next character
+        c++;
+
+        dprintf(fd, "%s", cmd);
+        break;
+    }
 }
 /*}}}*/
 
