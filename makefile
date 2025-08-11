@@ -21,7 +21,7 @@ CTAGS           := ctags
 CP              := cp
 
 # for BSD
-HASH_VERSION:sh	= printf "$(date '+%Y.%m.%d')."; git rev-parse --short=7 HEAD
+HASH_VERSION:sh	= git rev-parse --short=7 HEAD
 # for GNU (ignored by non-gmake versions)
 HASH_VERSION 	?= $(shell git rev-parse --short=7 HEAD)
 
