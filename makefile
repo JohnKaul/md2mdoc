@@ -11,8 +11,8 @@ TARGET			= md2mdoc
 $(TARGET) : SOURCES	= \
 		  src/main.c
 
-PREFIX			:=	/Users/john/bin
-MANPATH			:=	/Users/john/bin/man/man7
+PREFIX			:=	/usr/local/bin
+MANPATH			:=	/usr/local/share/man/man7
 
 CC				:= cc
 CFLAGS			:= -fno-exceptions -pipe -Wall -W
