@@ -273,11 +273,23 @@ void processline(char *cmd) { /*{{{*/
           dprintf(fd, ".Bl -tag -width Ds\n");
           listblock = 1;
         }
-        if (listblock == 1 && *cmd != '\n')               /* If the listblock flag has been set, and the next char is NOT
+        if (listblock == 1 && *cmd != '\n') {             /* If the listblock flag has been set, and the next char is NOT
                                                              a newline, this is just a list item. */
-          dprintf(fd, ".It Fl %s", cmd);
-        if (*cmd == '\n' && listblock == 1) {             /* However, if the line was only a dash
-                                                             than we need to close the item list. */
+          dprintf(fd, ".It Fl ");
+          dprintf(fd, "%c", *cmd);
+          ++cmd;
+
+          if (*cmd == ' ') {                              /* if we find a space after the flag, this is an argument
+                                                             EG: "-f argument"  */
+            dprintf(fd, " Ar%s", cmd);
+          } else {
+            dprintf(fd, "%s", cmd);                       /* else just print the line. */
+          }
+          ++cmd;
+        }
+
+        if (*cmd == '\n' && listblock == 1) {             /* However, if the line was only a dash and the listblock is set
+                                                             then we need to close the item list. */
           dprintf(fd, ".El\n");
           listblock = 0;
         }
