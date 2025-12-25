@@ -31,7 +31,8 @@ your markdown isn't too complicated).
                               be a name and a description. This should
                               be formatted as the example below.
     blank line  ->  .Pp     : Blank Line
-    -<char>     ->  .It Fl  : List element
+    -<char>     ->  .It Fl  : List element and a space after the <char>
+                              is assumed to be an argument to the flag.
     -           ->  .El     : A single dash is assumed to be a `list end`.
     ~           ->  .El     : An alternate `list end` character.
     <           ->  .nf     : Start of a `no format` block.
@@ -63,9 +64,10 @@ your markdown isn't too complicated).
     progname -- a program to change the world.
 
     # SYNOPSIS
-    progname 
+    progname
     [-abc]
-    <inpputfile> 
+    [-f file]
+    <inpputfile>
     <outputfile>
 
     # DESCRIPTION
@@ -82,6 +84,10 @@ your markdown isn't too complicated).
 
     -d
         Parse `#defines` that don't take arguments.
+
+    -f file
+        Pass a file argument to this option.
+
     -
 
     # CODE EXAMPLE
