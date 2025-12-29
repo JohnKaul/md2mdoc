@@ -223,16 +223,17 @@ void processline(char *cmd) { /*{{{*/
       case '#':                                           // Section break (heading)
         dprintf(fd, ".Sh%s", ++cmd);
         if(cimemcmp(cmd, " NAME", 5) == 0) {              /* If we've found a "NAME" heading, we can assume
-                                                           * the section looks something like:
-                                                           *      # NAME
-                                                           *      ProjectName -- Brief Decription
-                                                           * so we set some flags for the default
-                                                           * condition of this case statment to set
-                                                           * the .Nm and .Nd mdoc macros.  */
+                                                             the section looks something like:
+                                                                  # NAME
+                                                                  ProjectName -- Brief Decription
+                                                             so we set some flags for the default
+                                                             condition of this case statment to set
+                                                             the .Nm and .Nd mdoc macros.  */
           nameflag = 1;
         }
         break;
       case '[':                                           // Start of an optional argument
+                                                          // EG: to process the "[-abc]"
         cmd++;                                            /* Eat the bracket */
         dprintf(fd, ".Op ");
         if (*cmd == '-') {
@@ -242,7 +243,8 @@ void processline(char *cmd) { /*{{{*/
             if (*cmd != ' ')
               dprintf(fd, "%c", *cmd);
           } while (*cmd != ' ');
-          if (*cmd == ' ') {                              /* If we've found a space, this means we've found an optional argument. */
+          if (*cmd == ' ') {                              /* If we've found a space, this means we've found an
+                                                             optional argument. */
             dprintf(fd, " Ar ");
             do {                                          /* Print the chars until we find the closing bracket */
               ++cmd;                                      /* eat the space */
@@ -251,7 +253,7 @@ void processline(char *cmd) { /*{{{*/
             } while (*cmd != ']');
           }
           ++cmd;                                          /* Eat the last bracket */
-        } else {                                          /* Now we have to assume this is just a plain optional arguemnt */
+        } else {                                          /* Assume this is just a plain optional arguemnt */
           dprintf(fd, " Ar ");
           do {                                            /* Print the chars until we find the closing bracket */
             if (*cmd != ']')
@@ -263,33 +265,39 @@ void processline(char *cmd) { /*{{{*/
         dprintf(fd, "\n");
         break;
       case '-':                                           // A list item or a single dash is a list terminator
-        if(cimemcmp("-->", cmd, 3) == 0) {                /* end of a comment block */
+                                                          // EG: "-f" or "-f file" or just "-"
+        if(cimemcmp("-->", cmd, 3) == 0) {                /* First check if this is the end of a comment block */
           commentflag = 0;
           break;
         }
         ++cmd;                                            /* eat the dash */
         if(listblock == 0) {                              /* Check to see if the `listblock` flag has been set.
-                                                             if it hasn't, create the list block and set the flag.  */
+                                                             if it hasn't, create the list block and set the flag. */
           dprintf(fd, ".Bl -tag -width Ds\n");
           listblock = 1;
         }
-        if (listblock == 1 && *cmd != '\n') {             /* If the listblock flag has been set, and the next char is NOT
-                                                             a newline, this is just a list item. */
-          dprintf(fd, ".It Fl ");
-          dprintf(fd, "%c", *cmd);
+
+        if (listblock == 1 && *cmd != '\n') {             /* If the listblock flag has been set, and the next char
+                                                             is NOT a newline, this is just a list item. */
+          dprintf(fd, ".It");                             /* Add a 'list item' macro */
+          if (*cmd >=65 && *cmd <= 122)                   /* if the next item is (A-Za-z) char. */
+            dprintf(fd, " Fl ");                          /* Add a 'flag' macro. */
+
+          dprintf(fd, "%c", *cmd);                        /* Print the flag. */
           ++cmd;
 
           if (*cmd == ' ') {                              /* if we find a space after the flag, this is an argument
-                                                             EG: "-f argument"  */
-            dprintf(fd, " Ar%s", cmd);
+                                                             EG: "-f argument"
+                                                                    ^           */
+            dprintf(fd, " Ar%s", cmd);                    /* Print the 'argument' macro and the string. */
           } else {
             dprintf(fd, "%s", cmd);                       /* else just print the line. */
           }
           ++cmd;
         }
 
-        if (*cmd == '\n' && listblock == 1) {             /* However, if the line was only a dash and the listblock is set
-                                                             then we need to close the item list. */
+        if (*cmd == '\n' && listblock == 1) {             /* However, if the line was only a dash and the listblock
+                                                             is set then we need to close the item list. */
           dprintf(fd, ".El\n");
           listblock = 0;
         }
