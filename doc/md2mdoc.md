@@ -31,9 +31,16 @@ your markdown isn't too complicated).
                               be a name and a description. This should
                               be formatted as the example below.
     blank line  ->  .Pp     : Blank Line
+    - <string>  ->  .It     : List item.
     -<char>     ->  .It Fl  : List element and a space after the <char>
                               is assumed to be an argument to the flag.
-    -           ->  .El     : A single dash is assumed to be a `list end`.
+    EXAMPLE:
+    -<char>          ->  .It Fl <char>
+    -<char> <string> ->  .It Fl <char> Ar <string>
+    - <string>       ->  .It <string>
+
+    -           ->  .El     : A single dash--followed by a newline--is
+                              assumed to be a `list end`.
     ~           ->  .El     : An alternate `list end` character.
     <           ->  .nf     : Start of a `no format` block.
     >           ->  .fi     : End of a `no format` block.
@@ -54,7 +61,8 @@ your markdown isn't too complicated).
 
 ```md
     <!--
-        This is a comment block and should be ignored.
+        This is a markdown comment block and should be ignored
+        (i.e. not added to mdoc file).
     -->
     date: Feb 03 2024
     title: progname 7
@@ -67,8 +75,8 @@ your markdown isn't too complicated).
     progname
     [-abc]
     [-f file]
-    <inpputfile>
-    <outputfile>
+    inpputfile
+    outputfile
 
     # DESCRIPTION
     This utility will change the world because
@@ -88,6 +96,12 @@ your markdown isn't too complicated).
     -f file
         Pass a file argument to this option.
 
+    - inputfile
+        The file to pass as an input.
+
+    - outputfile
+        The file to write.
+
     -
 
     # CODE EXAMPLE
@@ -99,10 +113,10 @@ your markdown isn't too complicated).
 
     *WARNING*
         Never do the above.
-    
+
     _NOTE_
         This is a note block.
-    
+
     # SEE ALSO
     ^md2mdoc(7)^
     ^this^
