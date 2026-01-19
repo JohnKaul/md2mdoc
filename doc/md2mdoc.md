@@ -27,9 +27,9 @@ confused but it does offer a very good staring point for creating man
 page documentation for your project.
 
 The use of this utility is intended to offer a way to keep project
-notes/documention in a simple markdown format (plain text) where large
+notes/documentation in a simple markdown format (plain text) where large
 sections can be added/deleted easier. When the time comes to create
-more formal documentaiton, this utility aids in that process (assuming
+more formal documentation, this utility aids in that process (assuming
 your markdown isn't too complicated).
 
 # CHARACTER CONVERSION TABLE
@@ -145,7 +145,7 @@ your markdown isn't too complicated).
 -->
 
 _NOTE:_
-    Most sybols will naturally occur at the start of a line (header,
+    Most symbols will naturally occur at the start of a line (header,
     code block, etc.) but a few items like \*bold\*, \_italic\_,
     \`literal\`, and \^refernces\^, can be nested within the text.
 
