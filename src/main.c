@@ -62,6 +62,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #if __FreeBSD__                                         /* FreeBSD needs the following includes for
                                                            the S_IRUSR / S_IWUSR macros to work */
@@ -80,10 +81,15 @@
 //-------------------------------------------------------------------
 // Function Prototypes
 //-------------------------------------------------------------------
-void *processfd(void *arg);                             /* Open the FD and send to processline(); */
-void processline(char *cmd);                            /* Process one line of text at a time
-                                                           from the  input file. */
-int readline(int fd, char *buf, int nbytes);            /* Read a line of text from file. */
+static void *processfd(void *arg);                             /* Open the FD and send to processline(); */
+static void processline(char *str);                            /* Process one line of text at a time
+                                                                  from the  input file. */
+static void processnested(int fd, const char *str);
+static int readline(int fd, char *buf, int nbytes);            /* Read a line of text from file. */
+static int cimemcmp(const void *s1, const void *s2, size_t n); /* case independent memory regon compare */
+static int append_to_fd(int fd, const char *fmt, ...);  /* Append text to fd */
+static int read_until(const char **src, char delim, char *dst, size_t dstcap);
+static void skip_one_space_or_newline(const char **src);
 
 //-------------------------------------------------------------------
 // Global Variables
@@ -137,7 +143,7 @@ const static char *abortMsg[] = {
  *      AbortTranslation(abortInvalidCommandLineArgs);
  *  }
  */
-void AbortTranslation(enum TAbortCode ac) { /*{{{*/
+static void AbortTranslation(enum TAbortCode ac) { /*{{{*/
   fprintf(stderr, "**** Error: %s\n", abortMsg[-ac]);
   exit(ac);
 } /*}}}*/
@@ -147,7 +153,7 @@ void AbortTranslation(enum TAbortCode ac) { /*{{{*/
  *      Prints the usage string to enduser (incase they give the wrong
  *      arguments.
  */
-void printusage(char *str) { /*{{{*/
+static void printusage(char *str) { /*{{{*/
   fprintf(stderr, "**** Usage: %s <markdownfile> <mdocfiletowrite>\n", str);
 }
 /*}}}*/
@@ -156,7 +162,7 @@ void printusage(char *str) { /*{{{*/
  *      Read lines from a given filedescritor and pass them to the
  *      `processline` function.
  */
-void *processfd(void *arg) { /*{{{*/
+static void *processfd(void *arg) { /*{{{*/
   char buff[LINE_MAX];
   int fd;
   curfile = (char *)(arg);
@@ -175,7 +181,7 @@ void *processfd(void *arg) { /*{{{*/
 /* cimemcmp --
  *      Preform a case independent memory region compare.
  */
-int cimemcmp(const void *s1, const void *s2, size_t n) { /*{{{*/
+static int cimemcmp(const void *s1, const void *s2, size_t n) { /*{{{*/
   if (n != 0) {
     const unsigned char *p1 = s1, *p2 = s2;
 
@@ -188,41 +194,192 @@ int cimemcmp(const void *s1, const void *s2, size_t n) { /*{{{*/
 }
 /*}}}*/
 
+/**
+ * append_to_fd --
+ *      Append formatted string to fd using dprintf.
+ *
+ * Parameters:
+ *  fd  -   File descriptor to write to.
+ *  fmt -   printf-style format string.
+ *  ... -   Format arguments.
+ *
+ * Returns number of bytes written or -1 on error.
+ */
+static int append_to_fd(int fd, const char *fmt, ...) { /* {{{ */
+    int ret;
+    va_list ap;
+    va_start(ap, fmt);
+    ret = vdprintf(fd, fmt, ap);
+    va_end(ap);
+    return ret;
+}
+/* }}} */
+
+/**
+ * read_until --
+ *      Read characters from *src into dst up to delim or NUL or capacity-1.
+ *
+ * NOTES:
+ *  Advances *src to the character after the closing delim if found, otherwise
+ *  advances *src to the terminating NUL. Always NUL-terminates dst.
+ *
+ * Parameters:
+ *  src      -   Pointer to input pointer; advanced as characters are consumed.
+ *  delim    -   Delimiter character to stop at (not copied).
+ *  dst      -   Destination buffer for extracted token (NUL-terminated).
+ *  dstcap   -   Capacity of dst in bytes.
+ *
+ * Returns 1 if delim was found and consumed (i.e., *src advanced past it), 0 otherwise.
+ */
+static int read_until(const char **src, char delim, char *dst, size_t dstcap) { /* {{{ */
+    size_t i = 0;
+    const char *p = *src;
+
+    while (*p && *p != delim) {
+        if (i + 1 < dstcap) {          /* leave room for NUL */
+            dst[i++] = *p;
+        }
+        p++;
+    }
+    dst[i] = '\0';
+
+    if (*p == delim) {
+        p++;                           /* consume closing delim */
+        *src = p;
+        return 1;
+    } else {
+        *src = p;                      /* reached NUL */
+        return 0;
+    }
+}
+/* }}} */
+
+/**
+ * skip_one_space_or_newline --
+ *      If *src points to a single space or newline, advance past it.
+ * Parameters:
+ *  src  -   Pointer to input pointer; may be advanced by one.
+ */
+static void skip_one_space_or_newline(const char **src) {   /* {{{ */
+    if (**src == ' ' || **src == '\n')
+      (*src)++;
+}
+/* }}} */
+
+/**
+ * processnested --
+ *      Process inline (nested) tokens from string `s` and write formatted output to `fd`.
+ *
+ * Parameters:
+ *  fd  -   File descriptor
+ *  s   -   String to parse
+ */
+static void processnested(int fd, const char *str) {             /* {{{ */
+    const char *p = str;
+    char tok[512];                                      /* Temporary token buffer capacity. */
+
+    while (*p) {
+        switch (*p) {
+        case '*':                                       /* bold -> .Sy %s\n */
+            p++;                                        /* eat '*' */
+            read_until(&p, '*', tok, sizeof(tok));
+            append_to_fd(fd, ".Sy %s\n", tok);
+            skip_one_space_or_newline(&p);
+            break;
+
+        case '_':                                       /* italic -> .Em %s\n */
+            p++;
+            read_until(&p, '_', tok, sizeof(tok));
+            append_to_fd(fd, "\n.Em %s\n", tok);
+            skip_one_space_or_newline(&p);
+            break;
+
+        case '`':                                       /* inline literal -> .Li %s\n */
+            p++;
+            read_until(&p, '`', tok, sizeof(tok));
+            append_to_fd(fd, "\n.Li %s\n", tok);
+            skip_one_space_or_newline(&p);
+            break;
+
+        case '^':                                       /* reference -> .Xr %s\n */
+            p++;
+            read_until(&p, '^', tok, sizeof(tok));
+            append_to_fd(fd, "\n.Xr %s\n", tok);
+            skip_one_space_or_newline(&p);
+            break;
+
+        case '\\':                                      /* escape: \x\ -> x (or consume next char if present) */
+            p++;                                        /* eat backslash */
+            if (*p && *p != '\\') {
+                /* copy single character up to buffer limit */
+                tok[0] = *p;
+                tok[1] = '\0';
+                p++; /* consume escaped char */
+                if (*p == '\\') p++;                    /* eat backslash if found */
+                append_to_fd(fd, "%s", tok);
+            } else if (*p == '\\') {
+                /* literal backslash sequence "\\": output single backslash and consume */
+                append_to_fd(fd, "\\");
+                p++;
+            } else {
+                /* dangling backslash at end: output it */
+                append_to_fd(fd, "\\");
+            }
+            break;
+
+        default:
+            /* regular character: write single char */
+            append_to_fd(fd, "%c", *p);
+            p++;
+            break;
+        } /* switch */
+    } /* while */
+}
+/* }}} */
+
 /*
  * processline --
- *      This process the current line from the file and preforms
- *      simple character substion.
+ *      This process the current line from the file and handles
+ *      line-level constructs (leading tokens, block state--codeblock,
+ *      listblock, etc.).
+ *
+ * Parameters:
+ *  str -   string to search
  */
-void processline(char *cmd) { /*{{{*/
+static void processline(char *str) { /*{{{*/
     int c;                                                /* Current character */
-    c = *cmd;                                             /* Start at the beginning of the string */
+    c = *str;                                             /* Start at the beginning of the string */
     int fd = filedescriptors[1];                          /* The output file */
 
     switch (c) {
       case '\n':                                          // Newlines are replaced with a break.
-        dprintf(fd, ".Pp%s", cmd);
+        dprintf(fd, ".Pp%s", str);
         break;
+
       case 'a':                                           // Look for the string 'author:'
-        if(cimemcmp(cmd, "author:", 7) == 0) {
-          cmd += 7;                                       /* Eat the `author:` string. */
-          dprintf(fd, ".Au%s", cmd);
+        if(cimemcmp(str, "author:", 7) == 0) {
+          str += 7;                                       /* Eat the `author:` string. */
+          dprintf(fd, ".Au%s", str);
           break;
         }
+
       case 'd':                                           // Date
-        if(cimemcmp(cmd, "date:", 5) == 0) {
-          cmd += 5;                                       /* Eat the `date:` string */
-          dprintf(fd, ".Dd%s", cmd);
+        if(cimemcmp(str, "date:", 5) == 0) {
+          str += 5;                                       /* Eat the `date:` string */
+          dprintf(fd, ".Dd%s", str);
           break;
         }
+
       case 't':                                           // Look for the string 'title:'
-        if(cimemcmp(cmd, "title:", 6) == 0) {
-          cmd += 6;                                       /* Eat the `title:` string. */
-          dprintf(fd, ".Dt%s.Os\n", cmd);
+        if(cimemcmp(str, "title:", 6) == 0) {
+          str += 6;                                       /* Eat the `title:` string. */
+          dprintf(fd, ".Dt%s.Os\n", str);
           break;
         }
+
       case '#':                                           // Section break (heading)
-        dprintf(fd, ".Sh%s", ++cmd);
-        if(cimemcmp(cmd, " NAME", 5) == 0) {              /* If we've found a "NAME" heading, we can assume
+        dprintf(fd, ".Sh%s", ++str);
+        if(cimemcmp(str, " NAME", 5) == 0) {              /* If we've found a "NAME" heading, we can assume
                                                              the section looks something like:
                                                                   # NAME
                                                                   ProjectName -- Brief Decription
@@ -232,82 +389,86 @@ void processline(char *cmd) { /*{{{*/
           nameflag = 1;
         }
         break;
+
       case '[':                                           // Start of an optional argument
                                                           // EG: to process the "[-abc]"
-        cmd++;                                            /* Eat the bracket */
+        str++;                                            /* Eat the bracket */
         dprintf(fd, ".Op ");
-        if (*cmd == '-') {
+        if (*str == '-') {
           dprintf(fd, "Fl ");
           do {                                            /* Print the chars until space char */
-            ++cmd;                                        /* eat the dash */
-            if (*cmd != ' ')
-              dprintf(fd, "%c", *cmd);
-          } while (*cmd != ' ');
-          if (*cmd == ' ') {                              /* If we've found a space, this means we've found an
+            ++str;                                        /* eat the dash */
+            if (*str != ' ')
+              dprintf(fd, "%c", *str);
+          } while (*str != ' ');
+          if (*str == ' ') {                              /* If we've found a space, this means we've found an
                                                              optional argument. */
             dprintf(fd, " Ar ");
             do {                                          /* Print the chars until we find the closing bracket */
-              ++cmd;                                      /* eat the space */
-              if (*cmd != ']')
-                dprintf(fd, "%c", *cmd);
-            } while (*cmd != ']');
+              ++str;                                      /* eat the space */
+              if (*str != ']')
+                dprintf(fd, "%c", *str);
+            } while (*str != ']');
           }
-          ++cmd;                                          /* Eat the last bracket */
+          ++str;                                          /* Eat the last bracket */
         } else {                                          /* Assume this is just a plain optional arguemnt */
-          dprintf(fd, " Ar ");
+          dprintf(fd, "Ar ");
           do {                                            /* Print the chars until we find the closing bracket */
-            if (*cmd != ']')
-              dprintf(fd, "%c", *cmd);
-            ++cmd;                                        /* Eat the closing bracket */
-          } while (*cmd != ']');
+            if (*str != ']')
+              dprintf(fd, "%c", *str);
+            ++str;                                        /* Eat the closing bracket */
+          } while (*str != ']');
         }
 
         dprintf(fd, "\n");
         break;
+
       case '-':                                           // A list item or a single dash is a list terminator
                                                           // EG: "-f" or "-f file" or just "-"
-        if(cimemcmp("-->", cmd, 3) == 0) {                /* First check if this is the end of a comment block */
+        if(cimemcmp("-->", str, 3) == 0) {                /* First check if this is the end of a comment block */
           commentflag = 0;
           break;
         }
-        ++cmd;                                            /* eat the dash */
+        ++str;                                            /* eat the dash */
         if(listblock == 0) {                              /* Check to see if the `listblock` flag has been set.
                                                              if it hasn't, create the list block and set the flag. */
           dprintf(fd, ".Bl -tag -width Ds\n");
           listblock = 1;
         }
 
-        if (listblock == 1 && *cmd != '\n') {             /* If the listblock flag has been set, and the next char
+        if (listblock == 1 && *str != '\n') {             /* If the listblock flag has been set, and the next char
                                                              is NOT a newline, this is just a list item. */
           dprintf(fd, ".It");                             /* Add a 'list item' macro */
-          if (*cmd >=65 && *cmd <= 122)                   /* if the next item is (A-Za-z) char. */
+          if (*str >=65 && *str <= 122)                   /* if the next item is (A-Za-z) char. */
             dprintf(fd, " Fl ");                          /* Add a 'flag' macro. */
 
-          dprintf(fd, "%c", *cmd);                        /* Print the flag. */
-          ++cmd;
+          dprintf(fd, "%c", *str);                        /* Print the flag. */
+          ++str;
 
-          if (*cmd == ' ') {                              /* if we find a space after the flag, this is an argument
+          if (*str == ' ') {                              /* if we find a space after the flag, this is an argument
                                                              EG: "-f argument"
                                                                     ^           */
-            dprintf(fd, " Ar%s", cmd);                    /* Print the 'argument' macro and the string. */
+            dprintf(fd, " Ar%s", str);                    /* Print the 'argument' macro and the string. */
           } else {
-            dprintf(fd, "%s", cmd);                       /* else just print the line. */
+            dprintf(fd, "%s", str);                       /* else just print the line. */
           }
-          ++cmd;
+          ++str;
         }
 
-        if (*cmd == '\n' && listblock == 1) {             /* However, if the line was only a dash and the listblock
+        if (*str == '\n' && listblock == 1) {             /* However, if the line was only a dash and the listblock
                                                              is set then we need to close the item list. */
           dprintf(fd, ".El\n");
           listblock = 0;
         }
         break;
+
       case '~':                                           // An alternate list terminator
         dprintf(fd, ".El\n");
         break;
+
       case '<':                                           // The start of a `no format` section (this is also the
                                                           // symbol used in vim's docformat).
-        if (cimemcmp("<!--", cmd, 4) == 0) {              /* Start of a comment block */
+        if (cimemcmp("<!--", str, 4) == 0) {              /* Start of a comment block */
           commentflag = 1;
           break;
         }
@@ -315,51 +476,17 @@ void processline(char *cmd) { /*{{{*/
         stripwhitespace = 0;                              /* Disable stripwhitespace. */
         codeblock = 1;                                    /* Set the `codeblock` flag */
         break;
+
       case '>':                                           // The end of a `no format` section
         dprintf(fd, ".Ed\n");
         stripwhitespace = 1;
         codeblock = 0;
         break;
-      case '*':                                           // Bold
-        dprintf(fd, ".Sy ");
-        do {                                              /* Print the chars until NOT star */
-          ++cmd;                                          /* Eat the star */
-          if (*cmd != '*')
-            dprintf(fd, "%c", *cmd);
-        } while (*cmd != '*');
-        ++cmd;                                            /* Eat the last star */
-        dprintf(fd, "\n");
-        break;
-      case '_':                                           // Italic
-        dprintf(fd, ".Em ");
-        do {                                              /* Print this chars until NOT underscore */
-          ++cmd;                                          /* Eat the underscore */
-          if (*cmd != '_')
-            dprintf(fd, "%c", *cmd);
-        } while (*cmd != '_');
-        ++cmd;                                            /* Eat the last underscore */
-        dprintf(fd, "\n");
-        break;
-      case '^':                                           // Reference
-        dprintf(fd, ".Sx ");
-        do {                                              /* Print this chars until NOT carret */
-          ++cmd;                                          /* Eat the carret */
-          if (*cmd != '^')
-            dprintf(fd, "%c", *cmd);
-        } while (*cmd != '^');
-        ++cmd;                                            /* eat the last carret */
-        dprintf(fd, "\n");
-        break;
+
       case '`':                                           // Code block
                                                           //   In markdown, READMEs, forum posts, etc.
                                                           //   codeblocks are defined with three (3) backticks.
-
-        ++cmd;                                            /* Eat the first backtick */
-
-        if (*cmd != '`')                                  /* If we havent found another backtick sym, put it back. */
-          dprintf(fd, "`");
-
-        if (*cmd == '`') {                                /* If we have another backtick symbol... */
+        if(cimemcmp(str, "```", 3) == 0) {
           if(codeblock == 0) {                            /* Check to see if the `codeblock` flag has been set. */
             dprintf(fd, ".Bd -literal -offset indent\n");
             stripwhitespace = 0;                          /* Disable stripwhitespace. */
@@ -371,41 +498,46 @@ void processline(char *cmd) { /*{{{*/
           }
           break;
         }
+
       default:
         if(commentflag == 1) {
           break;
         }
         if(stripwhitespace) {
-          while (isspace((unsigned char)*cmd)) {
-            ++cmd;
+          while (isspace((unsigned char)*str)) {
+            ++str;
           }
         }
 
         if(nameflag == 1) {                               /* If we are supposed to process a name... */
           dprintf(fd, ".Nm ");
           do {                                            /* Print this chars until NOT a dash */
-            if (*cmd != '-')
-              dprintf(fd, "%c", *cmd);
-            ++cmd;                                        /* Eat the char */
-            if (*cmd == '-') {                            /* If we've encounted a dash, check for a doubledash. */
-              if(cimemcmp(cmd, "--", 2) == 0) {           /* double dashes signifies a `namedescription`. */
-                cmd += 2;                                 /* Eat the `--` string */
+            if (*str != '-')
+              dprintf(fd, "%c", *str);
+            ++str;                                        /* Eat the char */
+            if (*str == '-') {                            /* If we've encounted a dash, check for a doubledash. */
+              if(cimemcmp(str, "--", 2) == 0) {           /* double dashes signifies a `namedescription`. */
+                str += 2;                                 /* Eat the `--` string */
                 dprintf(fd, "\n.Nd");
                 do {
-                  if (*cmd != '\n' || \
-                      *cmd != ' ')
-                    dprintf(fd, "%c", *cmd);
-                  ++cmd;
-                } while (*cmd != '\n');
+                  if (*str != '\n' || \
+                      *str != ' ')
+                    dprintf(fd, "%c", *str);
+                  ++str;
+                } while (*str != '\n');
               }
             }
-          } while (*cmd != '\n');
+          } while (*str != '\n');
           nameflag = 0;                                   /* turn off the `nameflag`. */
         }
         // Move to the next character
         c++;
 
-        dprintf(fd, "%s", cmd);
+        if (codeblock == 0) {                             /* If we're not in a clode block... */
+          processnested(fd, str);                             /* Check the rest of the string for nested elements. */
+        } else {                                          /* otherwise just print the line. */
+          dprintf(fd, "%s", str);
+        }
         break;
     }
 }
@@ -423,7 +555,7 @@ void processline(char *cmd) { /*{{{*/
  * RETURNS
  *  int
  */
-int readline(int fd, char *buf, int nbytes) { /*{{{*/
+static int readline(int fd, char *buf, int nbytes) { /*{{{*/
   // Reads a line from file descriptor and stores the string in buf.
   int numread = 0;
   int returnval;
