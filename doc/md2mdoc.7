@@ -1,3 +1,5 @@
+.\" Copyright (c) 2026 John Kaul
+.\" SPDX-License-Identifier: BSD-2-Clause
 .Dd Feb 03 2024
 .Dt md2mdoc 7
 .Os
@@ -8,7 +10,15 @@
 .Nd a simple markdown to mdoc converter.
 .Pp
 .Sh SYNOPSIS
-md2mdoc <input MDfile> <output MDOCfile>
+md2mdoc <inputfile> <outputfile>
+.Pp
+.Bl -tag -width Ds
+.It inputfile
+A file written in the markdown syntax outlined below.
+.Pp
+.It outfile
+A mandoc file to write.
+.El
 .Pp
 .Sh DESCRIPTION
 This utility will convert simple markdown syntax characters to mdoc
@@ -37,9 +47,9 @@ your markdown isn't too complicated).
     -<char>     ->  .It Fl  : List element and a space after the <char>
                               is assumed to be an argument to the flag.
     EXAMPLE:
-    -<char>          ->  .It Fl <char>
-    -<char> <string> ->  .It Fl <char> Ar <string>
-    - <string>       ->  .It <string>
+      -<char>          ->  .It Fl <char>
+      -<char> <string> ->  .It Fl <char> Ar <string>
+      - <string>       ->  .It <string>
 .Pp
     -           ->  .El     : A single dash--followed by a newline--is
                               assumed to be a `list end`.
@@ -47,6 +57,7 @@ your markdown isn't too complicated).
     <           ->  .nf     : Start of a `no format` block.
     >           ->  .fi     : End of a `no format` block.
     ```         ->  .nf     : Start/End of a `no format` block.
+    `           ->  .Li     : Literal
     *           ->  .Bf     : Bold
     _           ->  .Em     : Italic
     ^           ->  .Sx     : Reference
@@ -70,6 +81,9 @@ your markdown isn't too complicated).
     title: progname 7
     author: John Kaul
 .Pp
+    .\\\\\\" Copyright (c) <year> <who>
+    .\\\\\\" SPDX-License-Identifier: BSD-2-Clause
+.Pp
     # NAME
     progname -- a program to change the world.
 .Pp
@@ -84,6 +98,9 @@ your markdown isn't too complicated).
     This utility will change the world because
     it will remove all leading spaces from lines
     in a text file.
+.Pp
+    A backslash (\) will escape a formatting character
+    like this: \\*this will not be bold\\*.
 .Pp
     # OPTIONS
     -a
@@ -113,24 +130,22 @@ your markdown isn't too complicated).
         unsigned long   str_longlen;    /* length of longest string */
     ```
 .Pp
-    *WARNING*
+    *WARNING:*
         Never do the above.
 .Pp
-    _NOTE_
+    _NOTE:_
         This is a note block.
 .Pp
     # SEE ALSO
-    ^md2mdoc(7)^
-    ^this^
-    ^that^
-    ^theotherthing^
+    ^md2mdoc(7)^, ^this(7)^, ^that(7)^, ^theotherthing(7)^
 .Ed
 .Pp
-.Em NOTE
-All the symbols this program finds are located at the beginning of
-the line. -i.e. This program is not good at parsing the entire
-strings looking for symbols.
 .Pp
+
+.Em NOTE:
+Most sybols will naturally occur at the start of a line (header,
+code block, etc.) but a few items like *bold*, _italic_,
+`literal`, and ^refernces^, can be nested within the text.
 .Pp
 .Sh MANUAL SECTIONS
 The standard sections for man pages:
@@ -146,14 +161,19 @@ The standard sections for man pages:
 .Ed
 .Pp
 .Sh MARKDOWN COMMENTS
-A comments style header can be kept in the markdown file which md2mdoc
-will ignore during processing. The comment style is HTML Tag style
-which is also ignored in other markdown processors.
+A comments style header can be kept in the markdown file which 
+.Li md2mdoc
+will
+ignore during processing. The comment style is HTML Tag style which is also
+ignored in other markdown processors.
 .Pp
 .Sh SEE ALSO
-.Sx mdoc(7)
-.Sx mandoc(1)
-.Sx man(1)
+
+.Xr mdoc(7)
+, 
+.Xr mandoc(1)
+, 
+.Xr man(1)
 .Pp
 .Sh HISTORY
 Created for my personal use.
