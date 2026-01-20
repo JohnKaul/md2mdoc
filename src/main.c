@@ -283,7 +283,7 @@ static void processnested(int fd, const char *str) {             /* {{{ */
         case '*':                                       /* bold -> .Sy %s\n */
             p++;                                        /* eat '*' */
             read_until(&p, '*', tok, sizeof(tok));
-            append_to_fd(fd, ".Sy %s\n", tok);
+            append_to_fd(fd, "\n.Sy %s\n", tok);
             skip_one_space_or_newline(&p);
             break;
 
