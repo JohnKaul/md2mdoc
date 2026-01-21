@@ -2,10 +2,6 @@
 #===---------------------------------------------*- makefile -*---===
 #: md2mdoc
 #===--------------------------------------------------------------===
-
-#--------------------------------------------------------------------
-# Set the target name and source file list.
-#--------------------------------------------------------------------
 TARGET			= md2mdoc
 
 $(TARGET) : SOURCES	= \
@@ -17,15 +13,12 @@ MANPATH			:=	/usr/local/share/man/man7
 CC				:= cc
 CFLAGS			:= -fno-exceptions -pipe -Wall -W
 REMOVE			:= rm -f
-CTAGS           := ctags
 CP              := cp
 
 # for BSD
 HASH_VERSION:sh	= git rev-parse --short=7 HEAD
 # for GNU (ignored by non-gmake versions)
 HASH_VERSION 	?= $(shell git rev-parse --short=7 HEAD)
-
-#-X- HASH_VERSION=$(printf "$(date '+%Y.%m.%d')."; git rev-parse --short=7 HEAD)
 
 #--------------------------------------------------------------------
 # Define the target compile instructions.
@@ -41,14 +34,6 @@ clean:
 	MD2MDOC_CLEAN='md2mdoc'
 		$(REMOVE) md2mdoc $(objects)
 
-.PHONY: almostclean
-almostclean:
-	$(RM) $(objects)
-
-.PHONY: tags
-tags:
-	$(CTAGS) -R .
-
 .PHONY: install
 install:
 	$(CP) md2mdoc $(PREFIX)
@@ -60,4 +45,4 @@ uninstall:
 	$(RM) $(MANPATH)/md2mdoc.7
 
 .PHONY: all
-all: md2mdoc tags almostclean
+all: md2mdoc 
