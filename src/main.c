@@ -572,8 +572,8 @@ int main(int argc, char *argv[]) {
   // -Parse the command line options.
   for (int i = 0; i < argc; i++) {
     if (argv[i] && strlen(argv[i]) > 1) {
-      if (argv[i][0] == '-' && argv[i][1] == 'o') { filedescriptors[1] = fopen(argv[++i], "w"); }
       if (argv[i][0] != '-') { filedescriptors[0] = fopen(argv[i], "r"); }
+      if (argv[i][0] == '-' && argv[i][1] == 'o') { filedescriptors[1] = fopen(argv[++i], "w"); }
 
       if (argv[i][0] == '|' || \
           argv[i][0] == '>') { break; }
