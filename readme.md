@@ -11,6 +11,16 @@ Brief:   This file contains the readme instructions for my project.
 
 This project is a simple markdown to mdoc (for man pages) converter.
 
+## SYNOPSIS
+md2mdoc [-o outputfile] inputfile
+
+## OPTIONS
+-o outputfile
+    A mandoc file to write.
+
+- inputfile
+    A file written in the markdown syntax outlined below.
+
 ## DESCRIPTION
 
 This file will convert a simple markdown file to use mdoc format. This
@@ -72,13 +82,34 @@ Will get converted to:
     ...
 ```
 
+## EXAMPLES
+Create an 'output' mandoc file from markdown 'input':
+```sh
+    % md2mdoc -o output input
+```
+
+Create an 'output' mandoc file from markdown 'input' via redirect:
+```sh
+    % md2mdoc input > output
+```
+
+Pipe a markdown file 'input' to ^mandoc(1)^ for processing on the fly:
+```sh
+    % md2mdoc input | mandoc -mdoc
+```
+
+Pipe a markdown file 'input' to ^mandoc(1)^ for viewing:
+```sh
+    % md2mdoc input | mandoc -mdoc | less
+```
+
 ## DOWNLOAD INSTRUCTIONS
 
 To clone a copy:
 
-```bash
-$ cd ~/<place>/<you>/<keep>/<your>/<code>
-$ git clone git@git:john/md2mdoc.git
+```sh
+    $ cd ~/<place>/<you>/<keep>/<your>/<code>
+    $ git clone git@git:john/md2mdoc.git
 ```
 
 ## BUILD INSTRUCTIONS
@@ -86,26 +117,26 @@ $ git clone git@git:john/md2mdoc.git
 This project uses MAKE to build, install and uninstall.
 
 To build:
-```bash
-$ cd md2mdoc
-$ make
+```sh
+    $ cd md2mdoc
+    $ make
 ```
 
 To install:
 ```bash
-% doas make install
+    % doas make install
 ```
 
 To uninstall:
-```bash
-% doas make uninstall
+```sh
+    % doas make uninstall
 ```
 
 I have also included a simple configure script which can be used to change the location for the install.
 
 To change the install location you can use something like the following:
-```bash
-% ./configure --prefix=/home/john/bin
+```sh
+    % ./configure --prefix=/home/john/bin
 ```
 
 ## CONTRIBUTION GUIDELINES
