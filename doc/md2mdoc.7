@@ -24,7 +24,8 @@ A file written in the markdown syntax outlined below.
 .El
 .Pp
 .Sh DESCRIPTION
-This utility will convert simple markdown syntax characters to mdoc
+This utility will convert simple markdown syntax characters to 
+.Xr mdoc 7  
 (man page) format characters. It will remove all leading spaces from
 lines unless within a code block. It will print to 
 .Li stdout
@@ -116,7 +117,7 @@ your markdown isn't too complicated).
         Use backward searching patterns (?...?).
 .Pp
     -d
-        Parse `#defines` that don't take arguments.
+        Parse #defines that don't take arguments.
 .Pp
     -f file
         Pass a file argument to this option.
@@ -173,12 +174,16 @@ ignore during processing. The comment style is HTML Tag style which is also
 ignored in other markdown processors.
 .Pp
 .Sh EXAMPLES
-Create an 'output' mandoc file from markdown 'input':
+Create an 'output' 
+.Xr mandoc 1  
+file from markdown 'input':
 .Bd -literal -offset indent
     % md2mdoc -o output input
 .Ed
 .Pp
-Create an 'output' mandoc file from markdown 'input' via redirect:
+Create an 'output' 
+.Xr mandoc 1  
+file from markdown 'input' via redirect:
 .Bd -literal -offset indent
     % md2mdoc input > output
 .Ed

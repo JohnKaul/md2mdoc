@@ -21,7 +21,7 @@ inputfile
 -
 
 # DESCRIPTION
-This utility will convert simple markdown syntax characters to mdoc
+This utility will convert simple markdown syntax characters to ^mdoc(7)^ 
 (man page) format characters. It will remove all leading spaces from
 lines unless within a code block. It will print to `stdout` unless
 specified otherwise.
@@ -111,7 +111,7 @@ your markdown isn't too complicated).
         Use backward searching patterns (?...?).
 
     -d
-        Parse `#defines` that don't take arguments.
+        Parse #defines that don't take arguments.
 
     -f file
         Pass a file argument to this option.
@@ -172,12 +172,12 @@ ignore during processing. The comment style is HTML Tag style which is also
 ignored in other markdown processors.
 
 # EXAMPLES
-Create an 'output' mandoc file from markdown 'input':
+Create an 'output' ^mandoc(1)^ file from markdown 'input':
 ```sh
     % md2mdoc -o output input
 ```
 
-Create an 'output' mandoc file from markdown 'input' via redirect:
+Create an 'output' ^mandoc(1)^ file from markdown 'input' via redirect:
 ```sh
     % md2mdoc input > output
 ```
