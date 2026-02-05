@@ -1,6 +1,6 @@
 .\" Copyright (c) 2026 John Kaul
 .\" SPDX-License-Identifier: BSD-2-Clause
-.Dd Feb 03 2024
+.Dd Feb 02 2026
 .Dt md2mdoc 7
 .Os
 .Au John Kaul
@@ -10,20 +10,26 @@
 .Nd a simple markdown to mdoc converter.
 .Pp
 .Sh SYNOPSIS
-md2mdoc <inputfile> <outputfile>
+.Nm
+.Op Fl o Ar outputfile
+inputfile
 .Pp
+.Sh OPTIONS
 .Bl -tag -width Ds
+.It Fl o Ar outputfile
+A mandoc file to write.
+.Pp
 .It inputfile
 A file written in the markdown syntax outlined below.
-.Pp
-.It outfile
-A mandoc file to write.
 .El
 .Pp
 .Sh DESCRIPTION
 This utility will convert simple markdown syntax characters to mdoc
 (man page) format characters. It will remove all leading spaces from
-lines unless within a code block.
+lines unless within a code block. It will print to 
+.Li stdout
+unless
+specified otherwise.
 .Pp
 This utility is not intelligent at all, it will give wonky results if
 confused but it does offer a very good staring point for creating man
@@ -141,7 +147,6 @@ your markdown isn't too complicated).
 .Ed
 .Pp
 .Pp
-
 .Em NOTE:
 Most symbols will naturally occur at the start of a line (header,
 code block, etc.) but a few items like *bold*, _italic_,
@@ -162,21 +167,33 @@ The standard sections for man pages:
 .Pp
 .Sh MARKDOWN COMMENTS
 A comments style header can be kept in the markdown file which 
-.Li md2mdoc
+.Nm
 will
 ignore during processing. The comment style is HTML Tag style which is also
 ignored in other markdown processors.
 .Pp
-These markdown comments are not added to the mdoc file and are meant
-.Sho keep notes or comment out regions of documentation.
+.Sh EXAMPLES
+Create an 'output' mandoc file from markdown 'input':
+.Bd -literal -offset indent
+    % md2mdoc -o output input
+.Ed
+.Pp
+Create an 'output' mandoc file from markdown 'input' via redirect:
+.Bd -literal -offset indent
+    % md2mdoc input > output
+.Ed
+.Pp
+Pipe a markdown file 'input' to 
+.Xr mandoc 1  
+for processing on the fly:
+.Bd -literal -offset indent
+    % md2mdoc input | mandoc -mdoc
+.Ed
 .Pp
 .Sh SEE ALSO
-
-.Xr mdoc(7)
-, 
-.Xr mandoc(1)
-, 
-.Xr man(1)
+.Xr mdoc 7 , 
+.Xr mandoc 1 , 
+.Xr man 1 
 .Pp
 .Sh HISTORY
 Created for my personal use.

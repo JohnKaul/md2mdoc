@@ -1,6 +1,6 @@
 .\\\" Copyright (c) 2026 John Kaul
 .\\\" SPDX-License-Identifier: BSD-2-Clause
-date: Feb 03 2024
+date: Feb 02 2026
 title: md2mdoc 7
 author: John Kaul
 
@@ -8,19 +8,23 @@ author: John Kaul
 md2mdoc -- a simple markdown to mdoc converter.
 
 # SYNOPSIS
-md2mdoc <inputfile> <outputfile>
+@
+[-o outputfile]
+inputfile
+
+# OPTIONS
+-o outputfile
+    A mandoc file to write.
 
 - inputfile
     A file written in the markdown syntax outlined below.
-
-- outfile
-    A mandoc file to write.
 -
 
 # DESCRIPTION
 This utility will convert simple markdown syntax characters to mdoc
 (man page) format characters. It will remove all leading spaces from
-lines unless within a code block.
+lines unless within a code block. It will print to `stdout` unless
+specified otherwise.
 
 This utility is not intelligent at all, it will give wonky results if
 confused but it does offer a very good staring point for creating man
@@ -163,9 +167,25 @@ The standard sections for man pages:
 ```
 
 # MARKDOWN COMMENTS
-A comments style header can be kept in the markdown file which `md2mdoc` will
+A comments style header can be kept in the markdown file which @ will
 ignore during processing. The comment style is HTML Tag style which is also
 ignored in other markdown processors.
+
+# EXAMPLES
+Create an 'output' mandoc file from markdown 'input':
+```sh
+    % md2mdoc -o output input
+```
+
+Create an 'output' mandoc file from markdown 'input' via redirect:
+```sh
+    % md2mdoc input > output
+```
+
+Pipe a markdown file 'input' to ^mandoc(1)^ for processing on the fly:
+```sh
+    % md2mdoc input | mandoc -mdoc
+```
 
 # SEE ALSO
 ^mdoc(7)^, ^mandoc(1)^, ^man(1)^
