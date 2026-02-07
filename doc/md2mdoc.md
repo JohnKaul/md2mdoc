@@ -187,6 +187,16 @@ Pipe a markdown file 'input' to ^mandoc(1)^ for processing on the fly:
     % md2mdoc input | mandoc -mdoc
 ```
 
+Pipe a markdown file 'input' to ^mandoc(1)^ for viewing with ^less(1)^:
+```sh
+    % md2mdoc input | mandoc -mdoc | less
+```
+
+Pipe a markdown file 'input' to ^mandoc(1)^ for viewing with ^vim(1)^:
+```sh
+    % md2mdoc input | mandoc -mdoc | vim -M +MANPAGER -c 'map q :q<CR>' -
+```
+
 # SEE ALSO
 ^mdoc(7)^, ^mandoc(1)^, ^man(1)^
 

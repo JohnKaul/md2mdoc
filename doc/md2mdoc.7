@@ -195,6 +195,24 @@ for processing on the fly:
     % md2mdoc input | mandoc -mdoc
 .Ed
 .Pp
+Pipe a markdown file 'input' to 
+.Xr mandoc 1  
+for viewing with 
+.Xr less 1 
+:
+.Bd -literal -offset indent
+    % md2mdoc input | mandoc -mdoc | less
+.Ed
+.Pp
+Pipe a markdown file 'input' to 
+.Xr mandoc 1  
+for viewing with 
+.Xr vim 1 
+:
+.Bd -literal -offset indent
+    % md2mdoc input | mandoc -mdoc | vim -M +MANPAGER -c 'map q :q<CR>' -
+.Ed
+.Pp
 .Sh SEE ALSO
 .Xr mdoc 7 , 
 .Xr mandoc 1 , 
