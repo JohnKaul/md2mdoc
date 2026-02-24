@@ -40,6 +40,7 @@ your markdown isn't too complicated).
 
 ```md
     #           ->  .Sh     : section headers
+    ##          ->  .Ss     : subsection headers
     # NAME      ->          : md2mdoc will assume the next line will
                               be a name and a description. This should
                               be formatted as the example below.
@@ -55,6 +56,7 @@ your markdown isn't too complicated).
     -           ->  .El     : A single dash--followed by a newline--is
                               assumed to be a `list end`.
     ~           ->  .El     : An alternate `list end` character.
+    ~ <string>  ->  .It     : List item.
     <           ->  .nf     : Start of a `no format` block.
     >           ->  .fi     : End of a `no format` block.
     ```         ->  .nf     : Start/End of a `no format` block.
@@ -78,12 +80,12 @@ your markdown isn't too complicated).
         This is a markdown comment block and should be ignored
         (i.e. not added to mdoc file).
     -->
+    .\\\\\\" Copyright (c) <year> <who>
+    .\\\\\\" SPDX-License-Identifier: BSD-2-Clause
+
     date: Feb 03 2024
     title: progname 7
     author: John Kaul
-
-    .\\\\\\" Copyright (c) <year> <who>
-    .\\\\\\" SPDX-License-Identifier: BSD-2-Clause
 
     # NAME
     progname -- a program to change the world.
@@ -100,6 +102,11 @@ your markdown isn't too complicated).
     it will remove all leading spaces from lines
     in a text file.
 
+    ~ A List item.
+    ~ Another list item.
+    ~
+
+    ## BACKSLASHES
     A backslash (\) will escape a formatting character
     like this: \\*this will not be bold\\*.
 
@@ -107,11 +114,11 @@ your markdown isn't too complicated).
     -a
         Append to the outout file.
 
-    -B
+    -b
         Use backward searching patterns (?...?).
 
-    -d
-        Parse #defines that don't take arguments.
+    -c
+        Another flag.
 
     -f file
         Pass a file argument to this option.
@@ -121,7 +128,6 @@ your markdown isn't too complicated).
 
     - outputfile
         The file to write.
-
     -
 
     # CODE EXAMPLE
@@ -138,22 +144,15 @@ your markdown isn't too complicated).
         This is a note block.
 
     # SEE ALSO
-    ^md2mdoc(7)^, ^this(7)^, ^that(7)^, ^theotherthing(7)^
+    ^this(1)^, ^that(2)^, ^theotherthing(3)^
 ```
-
-<!---
-    _NOTE_
-        All the symbols this program finds are located at the beginning of
-        the line. -i.e. This program is not good at parsing the entire
-        strings looking for symbols.
--->
 
 _NOTE:_
     Most symbols will naturally occur at the start of a line (header,
     code block, etc.) but a few items like \*bold\*, \_italic\_,
     \`literal\`, and \^refernces\^, can be nested within the text.
 
-# MANUAL SECTIONS
+## MANUAL SECTIONS
 The standard sections for man pages:
 ```md
        1      User Commands
