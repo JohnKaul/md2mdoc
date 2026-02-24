@@ -20,8 +20,9 @@
 // blank line  ->  .Pp     : Blank Line
 // @           ->  .Nm     : Project Name
 // -<char>     ->  .It Fl  : List element
-// -           ->  .El     : A single dash is assumed to be a `list end`.
-// ~           ->  .El     : An alternate `list end` character.
+// -\n         ->  .El     : A single dash is assumed to be a `list end`.
+// ~ <char>    ->  .It\n   : List element
+// ~\n         ->  .El     : An alternate `list end` character.
 // <           ->  .nf     : Start of a `no format` block.
 // >           ->  .fi     : End of a `no format` block.
 // ```         ->  .nf     : Start/End of a `no format` block.
@@ -81,12 +82,13 @@
 // Constants Declarations
 //-------------------------------------------------------------------
 #define SECTION ".Sh"
+#define SUBSECTION ".Ss"
 #define BOLD ".Sy "
 #define ITALIC ".Em "
 #define INLINE ".Li "
 #define REFERENCE ".Xr "
-#define OPTIONAL ".Op "
-#define FLAG "Fl "
+#define OPTIONAL ".Op"
+#define FLAG " Fl "
 #define ARGUMENT " Ar "
 #define ITEM ".It"
 #define AUTHOR ".Au"
@@ -107,6 +109,8 @@ static void skip_one_space_or_newline(const char **src);
 
 //-------------------------------------------------------------------
 // Global Variables
+// TODO:
+//  1. Move vars to struct.
 //-------------------------------------------------------------------
 FILE *filedescriptors[2];                               /* An array to hold open file descriptors. */
 unsigned int stripwhitespace = 1;                       /* Used to pause/stop stripping whitespace */
@@ -329,6 +333,8 @@ static void processnested(FILE *out, const char *str) {
     } /* while */
 }
 
+#define stripspaces()  while (isspace(*str) > 0) str++;
+
 /**
  * processline --
  *      This process the current line from the file and handles
@@ -370,22 +376,27 @@ static void processline(FILE *out, char *str) {
         }
 
       case '#':                                           // Section break (heading)
-        if (*str++ == '#') {                              /* eat all the leading hashs. */
-          while (isalpha(*str) > 0) str++;
-        }
-        sanitize(str, strlen(str));                       /* sanitize rest of string of all hashs */
-        fprintf(out, SECTION "%s", str);
-        if(cimemcmp(str, " NAME", 5) == 0) {              /* If we've found a "NAME" heading, we can
-                                                             assume the section looks something like:
-                                                                  # NAME
-                                                                  ProjectName -- Brief Decription
-                                                             so we set some flags for the default
-                                                             condition of this case statment to set
-                                                             the .Nm and .Nd mdoc macros.  */
-          nameflag = 1;
+        stripspaces();
+        if(memcmp(str, "##", 2) == 0)  {
+          str += 2;
+          sanitize(str, strlen(str));                       /* sanitize rest of string of all hashs */
+          fprintf(out, SUBSECTION "%s", str);
+          break;
+        } else {
+          sanitize(str, strlen(str));                       /* sanitize rest of string of all hashs */
+          stripspaces();
+          fprintf(out, SECTION " %s", str);
+          if(cimemcmp(str, "NAME", 4) == 0) {              /* If we've found a "NAME" heading, we can
+                                                              assume the section looks something like:
+                                                                # NAME
+                                                                ProjectName -- Brief Decription
+                                                                so we set some flags for the default
+                                                                condition of this case statment to set
+                                                                the .Nm and .Nd mdoc macros.  */
+            nameflag = 1;
+          }
           break;
         }
-        break;
 
       case '[':                                           // Start of an optional argument
                                                           // EG: to process the "[-abc]"
@@ -394,28 +405,33 @@ static void processline(FILE *out, char *str) {
         if (*str == '-') {
           str++;
           fprintf(out, FLAG);
-          do {                                            /* Print the chars until space char */
-            if (*str != ' ')
-              fprintf(out, "%c", *str);
-            ++str;                                        /* eat the dash */
-          } while (*str != ' '  && *str != ']');
+           do {                                            /* Print the chars until space char */
+             if (*str != ' ')
+               fprintf(out, "%c", *str);
+             ++str;                                        /* eat the dash */
+           } while (*str != ' '  && *str != ']');
+          /* while (*str != ' '  && *str != ']') fprintf(out, "%c", *++str);
+          str++; */                                          /* eat the final bracket */
           if (*str == ' ') {                              /* If we've found a space, this means we've found an
                                                              optional argument. */
             fprintf(out, ARGUMENT);
-            do {                                          /* Print the chars until we find the closing bracket */
-              ++str;                                      /* eat the space */
-              if (*str != ']')
-                fprintf(out, "%c", *str);
-            } while (*str != ']');
+
+             do {                                          /* Print the chars until we find the closing bracket */
+               ++str;                                      /* eat the space */
+               if (*str != ']')
+                 fprintf(out, "%c", *str);
+             } while (*str != ']');
+            /* while (*str != ']') fprintf(out, "%c", *++str); */
           }
           ++str;                                          /* Eat the last bracket */
         } else {                                          /* Assume this is just a plain optional arguemnt */
           fprintf(out, ARGUMENT);
-          do {                                            /* Print the chars until we find the closing bracket */
-            if (*str != ']')
-              fprintf(out, "%c", *str);
-            ++str;                                        /* Eat the closing bracket */
-          } while (*str != ']');
+           do {                                            /* Print the chars until we find the closing bracket */
+             if (*str != ']')
+               fprintf(out, "%c", *str);
+             ++str;                                        /* Eat the closing bracket */
+           } while (*str != ']');
+          /* while (*str != ']') fprintf(out, "%c", *str++); */
         }
 
         fprintf(out, "\n");
@@ -428,19 +444,21 @@ static void processline(FILE *out, char *str) {
           break;
         }
         ++str;                                            /* eat the dash */
+
         if(listblock == 0) {                              /* Check to see if the `listblock` flag has been set.
                                                              if it hasn't, create the list block and set the flag. */
-          fprintf(out, ".Bl -tag -width Ds\n");
           listblock = 1;
-        }
+          fprintf(out, ".Bl -tag -width Ds\n");
+         }
 
         if (listblock == 1 && *str != '\n') {             /* If the listblock flag has been set, and the next char
                                                              is NOT a newline, this is just a list item. */
           fprintf(out, ITEM);                             /* Add a 'list item' macro */
-          if (*str >=65 && *str <= 122)                   /* if the next item is (A-Za-z) char. */
-            fprintf(out, " Fl ");                          /* Add a 'flag' macro. */
 
-          fprintf(out, "%c", *str);                        /* Print the flag. */
+          if (isalpha(*str) > 0)                          /* if the next item is (A-Za-z) char. */
+            fprintf(out, " Fl ");                         /* Add a 'flag' macro. */
+
+          fprintf(out, "%c", *str);                       /* Print the flag. */
           ++str;
 
           if (*str == ' ') {                              /* if we find a space after the flag, this is an argument
@@ -460,9 +478,24 @@ static void processline(FILE *out, char *str) {
         }
         break;
 
-      case '~':                                           // An alternate list terminator
-        fprintf(out, ".El\n");
-        break;
+      case '~':                                           // An alternate list terminator or list item
+        str++;
+        if (*str == '\n' && listblock == 1) {
+          fprintf(out, ".El\n");
+          listblock = 0;
+          break;
+        }
+        if (listblock == 0) {
+          listblock = 1;
+          fprintf(out, ".Bl -dash -compact\n");
+        }
+        if (listblock == 1 && *str != '\n') {
+          fprintf(out, ITEM);
+          if (*str == ' ') {
+            fprintf(out, "\n%s", ++str);
+            break;
+          }
+        }
 
       case '<':                                           // The start of a `no format` section (this is also the
                                                           // symbol used in vim's docformat).
@@ -477,7 +510,7 @@ static void processline(FILE *out, char *str) {
 
       case '>':                                           // The end of a `no format` section
         fprintf(out, ".Ed\n");
-        stripwhitespace = 1;
+        /* stripwhitespace = 1; */
         codeblock = 0;
         break;
 
@@ -491,7 +524,7 @@ static void processline(FILE *out, char *str) {
             codeblock = 1;
           } else if (codeblock == 1) {
             fprintf(out, ".Ed\n");
-            stripwhitespace = 1;
+            /* stripwhitespace = 1; */
             codeblock = 0;
           }
           break;
@@ -501,9 +534,12 @@ static void processline(FILE *out, char *str) {
         if(commentflag == 1) {
           break;
         }
+        /*
         if(stripwhitespace == 1) {
           while (isspace(*str) > 0) str++;
         }
+        */
+        stripspaces();
 
         if(nameflag == 1) {                               /* If we are supposed to process a name... */
           fprintf(out, ".Nm ");
