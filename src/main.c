@@ -333,7 +333,7 @@ static void processnested(FILE *out, const char *str) {
     } /* while */
 }
 
-#define stripspaces()  while (isspace(*str) > 0) str++;
+#define stripspaces()  while (isspace(*str) > 0 && *str != '\0') str++;
 
 /**
  * processline --
@@ -349,40 +349,39 @@ static void processline(FILE *out, char *str) {
     c = *str;                                           /* Start at the beginning of the string */
 
     switch (c) {
-      stripwhitespace = 0;
+      /* stripwhitespace = 0; */
       case '\n':                                        // Newlines are replaced with a break.
-        fprintf(out, ".Pp%s", str);
-        break;
+        fprintf(out, ".Pp\n");
+        return;
 
       case 'a':                                         // Look for the string 'author:'
         if(cimemcmp(str, "author:", 7) == 0) {
           str += 7;                                     /* Eat the `author:` string. */
           fprintf(out, AUTHOR "%s", str);
-          break;
+          return;
         }
 
       case 'd':                                         // Date
         if(cimemcmp(str, "date:", 5) == 0) {
           str += 5;                                     /* Eat the `date:` string */
           fprintf(out, DATE "%s", str);
-          break;
+          return;
         }
 
       case 't':                                         // Look for the string 'title:'
         if(cimemcmp(str, "title:", 6) == 0) {
           str += 6;                                     /* Eat the `title:` string. */
           fprintf(out, TITLE "%s.Os\n", str);
-          break;
+          return;
         }
 
       case '#':                                         // Section break (heading)
-        stripspaces();
-        if(memcmp(str, "##", 2) == 0)  {
-          str += 2;
+        if(strncmp(str, "## ", 3) == 0)  {
           sanitize(str, strlen(str));                   /* sanitize rest of string of all hashs */
-          fprintf(out, SUBSECTION "%s", str);
-          break;
-        } else {
+          stripspaces();
+          fprintf(out, SUBSECTION " %s", str);
+          return;
+        } else if(strncmp(str, "# ", 2) == 0) {
           sanitize(str, strlen(str));                   /* sanitize rest of string of all hashs */
           stripspaces();
           fprintf(out, SECTION " %s", str);
@@ -395,9 +394,8 @@ static void processline(FILE *out, char *str) {
                                                               the .Nm and .Nd mdoc macros.  */
             nameflag = 1;
           }
-          break;
         }
-
+        return;
       case '[':                                         // Start of an optional argument
                                                         // EG: to process the "[-abc]"
         str++;                                          /* Eat the bracket */
@@ -405,23 +403,21 @@ static void processline(FILE *out, char *str) {
         if (*str == '-') {
           str++;
           fprintf(out, FLAG);
-           do {                                         /* Print the chars until space char */
-             if (*str != ' ')
-               fprintf(out, "%c", *str);
-             ++str;                                     /* eat the dash */
-           } while (*str != ' '  && *str != ']');
-          /* while (*str != ' '  && *str != ']') fprintf(out, "%c", *++str);
-          str++; */                                     /* eat the final bracket */
+          do {                                         /* Print the chars until space char */
+            if (*str != ' ')
+              fprintf(out, "%c", *str);
+            ++str;                                     /* eat the dash */
+          } while (*str != ' '  && *str != ']');
           if (*str == ' ') {                            /* If we've found a space, this means we've found an
                                                            optional argument. */
             fprintf(out, ARGUMENT);
 
-             do {                                       /* Print the chars until we find the closing bracket */
-               ++str;                                   /* eat the space */
-               if (*str != ']')
-                 fprintf(out, "%c", *str);
-             } while (*str != ']');
-            /* while (*str != ']') fprintf(out, "%c", *++str); */
+
+            do {                                       /* Print the chars until we find the closing bracket */
+              ++str;                                   /* eat the space */
+              if (*str != ']')
+                fprintf(out, "%c", *str);
+            } while (*str != ']' && *str != '\0');
           }
           ++str;                                        /* Eat the last bracket */
         } else {                                        /* Assume this is just a plain optional arguemnt */
@@ -431,7 +427,6 @@ static void processline(FILE *out, char *str) {
                fprintf(out, "%c", *str);
              ++str;                                     /* Eat the closing bracket */
            } while (*str != ']');
-          /* while (*str != ']') fprintf(out, "%c", *str++); */
         }
 
         fprintf(out, "\n");
@@ -439,9 +434,9 @@ static void processline(FILE *out, char *str) {
 
       case '-':                                         // A list item or a single dash is a list terminator
                                                         // EG: "-f" or "-f file" or just "-"
-        if(cimemcmp(str, "-->", 3) == 0) {              /* First check if this is the end of a comment block */
+        if(strncmp(str, "-->", 3) == 0) {              /* First check if this is the end of a comment block */
           commentflag = 0;
-          break;
+          return;
         }
         ++str;                                          /* eat the dash */
 
@@ -483,7 +478,7 @@ static void processline(FILE *out, char *str) {
         if (*str == '\n' && listblock == 1) {
           fprintf(out, ".El\n");
           listblock = 0;
-          break;
+          return;
         }
         if (listblock == 0) {
           listblock = 1;
@@ -496,6 +491,7 @@ static void processline(FILE *out, char *str) {
             break;
           }
         }
+        return;
 
       case '<':                                         // The start of a `no format` section (this is also the
                                                         // symbol used in vim's docformat).
@@ -527,12 +523,12 @@ static void processline(FILE *out, char *str) {
             /* stripwhitespace = 1; */
             codeblock = 0;
           }
-          break;
+          return;
         }
 
       default:
         if(commentflag == 1) {
-          break;
+          return;
         }
         if(stripwhitespace == 1) {
           while (isspace(*str) > 0) str++;
@@ -559,15 +555,13 @@ static void processline(FILE *out, char *str) {
           } while (*str != '\n');
           nameflag = 0;                                 /* turn off the `nameflag`. */
         }
-        // Move to the next character
-        c++;
 
         if (codeblock == 0) {                           /* If we're not in a clode block... */
           processnested(out, str);                      /* Check the rest of the string for nested elements. */
         } else {                                        /* otherwise just print the line. */
           fprintf(out, "%s", str);
+          break;
         }
-        break;
     }
 }
 
