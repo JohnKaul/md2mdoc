@@ -310,7 +310,7 @@ static void processnested(FILE *out, const char *str) {
                 /* copy single character up to buffer limit */
                 tok[0] = *p;
                 tok[1] = '\0';
-                p++; /* consume escaped char */
+                p++;                                    /* consume escaped char */
                 if (*p == '\\') p++;                    /* eat backslash if found */
                 fprintf(out, "%s", tok);
             } else if (*p == '\\') {
@@ -345,91 +345,91 @@ static void processnested(FILE *out, const char *str) {
  *  str -   string to search
  */
 static void processline(FILE *out, char *str) {
-    int c;                                                /* Current character */
-    c = *str;                                             /* Start at the beginning of the string */
+    int c;                                              /* Current character */
+    c = *str;                                           /* Start at the beginning of the string */
 
     switch (c) {
       stripwhitespace = 0;
-      case '\n':                                          // Newlines are replaced with a break.
+      case '\n':                                        // Newlines are replaced with a break.
         fprintf(out, ".Pp%s", str);
         break;
 
-      case 'a':                                           // Look for the string 'author:'
+      case 'a':                                         // Look for the string 'author:'
         if(cimemcmp(str, "author:", 7) == 0) {
-          str += 7;                                       /* Eat the `author:` string. */
+          str += 7;                                     /* Eat the `author:` string. */
           fprintf(out, AUTHOR "%s", str);
           break;
         }
 
-      case 'd':                                           // Date
+      case 'd':                                         // Date
         if(cimemcmp(str, "date:", 5) == 0) {
-          str += 5;                                       /* Eat the `date:` string */
+          str += 5;                                     /* Eat the `date:` string */
           fprintf(out, DATE "%s", str);
           break;
         }
 
-      case 't':                                           // Look for the string 'title:'
+      case 't':                                         // Look for the string 'title:'
         if(cimemcmp(str, "title:", 6) == 0) {
-          str += 6;                                       /* Eat the `title:` string. */
+          str += 6;                                     /* Eat the `title:` string. */
           fprintf(out, TITLE "%s.Os\n", str);
           break;
         }
 
-      case '#':                                           // Section break (heading)
+      case '#':                                         // Section break (heading)
         stripspaces();
         if(memcmp(str, "##", 2) == 0)  {
           str += 2;
-          sanitize(str, strlen(str));                       /* sanitize rest of string of all hashs */
+          sanitize(str, strlen(str));                   /* sanitize rest of string of all hashs */
           fprintf(out, SUBSECTION "%s", str);
           break;
         } else {
-          sanitize(str, strlen(str));                       /* sanitize rest of string of all hashs */
+          sanitize(str, strlen(str));                   /* sanitize rest of string of all hashs */
           stripspaces();
           fprintf(out, SECTION " %s", str);
-          if(cimemcmp(str, "NAME", 4) == 0) {              /* If we've found a "NAME" heading, we can
-                                                              assume the section looks something like:
-                                                                # NAME
-                                                                ProjectName -- Brief Decription
-                                                                so we set some flags for the default
-                                                                condition of this case statment to set
-                                                                the .Nm and .Nd mdoc macros.  */
+          if(cimemcmp(str, "NAME", 4) == 0) {           /* If we've found a "NAME" heading, we can
+                                                           assume the section looks something like:
+                                                              # NAME
+                                                              ProjectName -- Brief Decription
+                                                              so we set some flags for the default
+                                                              condition of this case statment to set
+                                                              the .Nm and .Nd mdoc macros.  */
             nameflag = 1;
           }
           break;
         }
 
-      case '[':                                           // Start of an optional argument
-                                                          // EG: to process the "[-abc]"
-        str++;                                            /* Eat the bracket */
+      case '[':                                         // Start of an optional argument
+                                                        // EG: to process the "[-abc]"
+        str++;                                          /* Eat the bracket */
         fprintf(out, OPTIONAL);
         if (*str == '-') {
           str++;
           fprintf(out, FLAG);
-           do {                                            /* Print the chars until space char */
+           do {                                         /* Print the chars until space char */
              if (*str != ' ')
                fprintf(out, "%c", *str);
-             ++str;                                        /* eat the dash */
+             ++str;                                     /* eat the dash */
            } while (*str != ' '  && *str != ']');
           /* while (*str != ' '  && *str != ']') fprintf(out, "%c", *++str);
-          str++; */                                          /* eat the final bracket */
-          if (*str == ' ') {                              /* If we've found a space, this means we've found an
-                                                             optional argument. */
+          str++; */                                     /* eat the final bracket */
+          if (*str == ' ') {                            /* If we've found a space, this means we've found an
+                                                           optional argument. */
             fprintf(out, ARGUMENT);
 
-             do {                                          /* Print the chars until we find the closing bracket */
-               ++str;                                      /* eat the space */
+             do {                                       /* Print the chars until we find the closing bracket */
+               ++str;                                   /* eat the space */
                if (*str != ']')
                  fprintf(out, "%c", *str);
              } while (*str != ']');
             /* while (*str != ']') fprintf(out, "%c", *++str); */
           }
-          ++str;                                          /* Eat the last bracket */
-        } else {                                          /* Assume this is just a plain optional arguemnt */
+          ++str;                                        /* Eat the last bracket */
+        } else {                                        /* Assume this is just a plain optional arguemnt */
           fprintf(out, ARGUMENT);
-           do {                                            /* Print the chars until we find the closing bracket */
+           do {                                         /* Print the chars until we find the closing bracket */
              if (*str != ']')
                fprintf(out, "%c", *str);
-             ++str;                                        /* Eat the closing bracket */
+             ++str;                                     /* Eat the closing bracket */
            } while (*str != ']');
           /* while (*str != ']') fprintf(out, "%c", *str++); */
         }
@@ -437,48 +437,48 @@ static void processline(FILE *out, char *str) {
         fprintf(out, "\n");
         break;
 
-      case '-':                                           // A list item or a single dash is a list terminator
-                                                          // EG: "-f" or "-f file" or just "-"
-        if(cimemcmp(str, "-->", 3) == 0) {                /* First check if this is the end of a comment block */
+      case '-':                                         // A list item or a single dash is a list terminator
+                                                        // EG: "-f" or "-f file" or just "-"
+        if(cimemcmp(str, "-->", 3) == 0) {              /* First check if this is the end of a comment block */
           commentflag = 0;
           break;
         }
-        ++str;                                            /* eat the dash */
+        ++str;                                          /* eat the dash */
 
-        if(listblock == 0) {                              /* Check to see if the `listblock` flag has been set.
-                                                             if it hasn't, create the list block and set the flag. */
+        if(listblock == 0) {                            /* Check to see if the `listblock` flag has been set.
+                                                           if it hasn't, create the list block and set the flag. */
           listblock = 1;
           fprintf(out, ".Bl -tag -width Ds\n");
          }
 
-        if (listblock == 1 && *str != '\n') {             /* If the listblock flag has been set, and the next char
-                                                             is NOT a newline, this is just a list item. */
-          fprintf(out, ITEM);                             /* Add a 'list item' macro */
+        if (listblock == 1 && *str != '\n') {           /* If the listblock flag has been set, and the next char
+                                                           is NOT a newline, this is just a list item. */
+          fprintf(out, ITEM);                           /* Add a 'list item' macro */
 
-          if (isalpha(*str) > 0)                          /* if the next item is (A-Za-z) char. */
-            fprintf(out, " Fl ");                         /* Add a 'flag' macro. */
+          if (isalpha(*str) > 0)                        /* if the next item is (A-Za-z) char. */
+            fprintf(out, " Fl ");                       /* Add a 'flag' macro. */
 
-          fprintf(out, "%c", *str);                       /* Print the flag. */
+          fprintf(out, "%c", *str);                     /* Print the flag. */
           ++str;
 
-          if (*str == ' ') {                              /* if we find a space after the flag, this is an argument
-                                                             EG: "-f argument"
-                                                                    ^           */
-            fprintf(out, " Ar%s", str);                    /* Print the 'argument' macro and the string. */
+          if (*str == ' ') {                            /* if we find a space after the flag, this is an argument
+                                                           EG: "-f argument"
+                                                                  ^           */
+            fprintf(out, " Ar%s", str);                 /* Print the 'argument' macro and the string. */
           } else {
-            fprintf(out, "%s", str);                       /* else just print the line. */
+            fprintf(out, "%s", str);                    /* else just print the line. */
           }
           ++str;
         }
 
-        if (*str == '\n' && listblock == 1) {             /* However, if the line was only a dash and the listblock
-                                                             is set then we need to close the item list. */
+        if (*str == '\n' && listblock == 1) {           /* However, if the line was only a dash and the listblock
+                                                           is set then we need to close the item list. */
           fprintf(out, ".El\n");
           listblock = 0;
         }
         break;
 
-      case '~':                                           // An alternate list terminator or list item
+      case '~':                                         // An alternate list terminator or list item
         str++;
         if (*str == '\n' && listblock == 1) {
           fprintf(out, ".El\n");
@@ -497,30 +497,30 @@ static void processline(FILE *out, char *str) {
           }
         }
 
-      case '<':                                           // The start of a `no format` section (this is also the
-                                                          // symbol used in vim's docformat).
-        if (cimemcmp(str, "<!--", 4) == 0) {              /* Start of a comment block */
+      case '<':                                         // The start of a `no format` section (this is also the
+                                                        // symbol used in vim's docformat).
+        if (cimemcmp(str, "<!--", 4) == 0) {            /* Start of a comment block */
           commentflag = 1;
           break;
         }
         fprintf(out, ".Bd -literal -offset indent\n");
-        stripwhitespace = 0;                              /* Disable stripwhitespace. */
-        codeblock = 1;                                    /* Set the `codeblock` flag */
+        stripwhitespace = 0;                            /* Disable stripwhitespace. */
+        codeblock = 1;                                  /* Set the `codeblock` flag */
         break;
 
-      case '>':                                           // The end of a `no format` section
+      case '>':                                         // The end of a `no format` section
         fprintf(out, ".Ed\n");
         /* stripwhitespace = 1; */
         codeblock = 0;
         break;
 
-      case '`':                                           // Code block
-                                                          //   In markdown, READMEs, forum posts, etc.
-                                                          //   codeblocks are defined with three (3) backticks.
+      case '`':                                         // Code block
+                                                        //   In markdown, READMEs, forum posts, etc.
+                                                        //   codeblocks are defined with three (3) backticks.
         if(cimemcmp(str, "```", 3) == 0) {
-          if(codeblock == 0) {                            /* Check to see if the `codeblock` flag has been set. */
+          if(codeblock == 0) {                          /* Check to see if the `codeblock` flag has been set. */
             fprintf(out, ".Bd -literal -offset indent\n");
-            stripwhitespace = 0;                          /* Disable stripwhitespace. */
+            stripwhitespace = 0;                        /* Disable stripwhitespace. */
             codeblock = 1;
           } else if (codeblock == 1) {
             fprintf(out, ".Ed\n");
@@ -534,22 +534,19 @@ static void processline(FILE *out, char *str) {
         if(commentflag == 1) {
           break;
         }
-        /*
         if(stripwhitespace == 1) {
           while (isspace(*str) > 0) str++;
         }
-        */
-        stripspaces();
 
-        if(nameflag == 1) {                               /* If we are supposed to process a name... */
+        if(nameflag == 1) {                             /* If we are supposed to process a name... */
           fprintf(out, ".Nm ");
-          do {                                            /* Print this chars until NOT a dash */
+          do {                                          /* Print this chars until NOT a dash */
             if (*str != '-')
               fprintf(out, "%c", *str);
-            ++str;                                        /* Eat the char */
-            if (*str == '-') {                            /* If we've encounted a dash, check for a doubledash. */
-              if(cimemcmp(str, "--", 2) == 0) {           /* double dashes signifies a `namedescription`. */
-                str += 2;                                 /* Eat the `--` string */
+            ++str;                                      /* Eat the char */
+            if (*str == '-') {                          /* If we've encounted a dash, check for a doubledash. */
+              if(cimemcmp(str, "--", 2) == 0) {         /* double dashes signifies a `namedescription`. */
+                str += 2;                               /* Eat the `--` string */
                 fprintf(out, "\n.Nd");
                 do {
                   if (*str != '\n' || \
@@ -560,14 +557,14 @@ static void processline(FILE *out, char *str) {
               }
             }
           } while (*str != '\n');
-          nameflag = 0;                                   /* turn off the `nameflag`. */
+          nameflag = 0;                                 /* turn off the `nameflag`. */
         }
         // Move to the next character
         c++;
 
-        if (codeblock == 0) {                             /* If we're not in a clode block... */
-          processnested(out, str);                         /* Check the rest of the string for nested elements. */
-        } else {                                          /* otherwise just print the line. */
+        if (codeblock == 0) {                           /* If we're not in a clode block... */
+          processnested(out, str);                      /* Check the rest of the string for nested elements. */
+        } else {                                        /* otherwise just print the line. */
           fprintf(out, "%s", str);
         }
         break;
