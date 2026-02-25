@@ -45,130 +45,130 @@ your markdown isn't too complicated).
 .Sh CHARACTER CONVERSION TABLE
 .Pp
 .Bd -literal -offset indent
-#           ->  .Sh     : section headers
-##          ->  .Ss     : subsection headers
-# NAME      ->          : md2mdoc will assume the next line will
-be a name and a description. This should
-be formatted as the example below.
-blank line  ->  .Pp     : Blank Line
-- <string>  ->  .It     : List item.
--<char>     ->  .It Fl  : List element and a space after the <char>
-is assumed to be an argument to the flag.
-EXAMPLE:
--<char>          ->  .It Fl <char>
--<char> <string> ->  .It Fl <char> Ar <string>
-- <string>       ->  .It <string>
+    #           ->  .Sh     : section headers
+    ##          ->  .Ss     : subsection headers
+    # NAME      ->          : md2mdoc will assume the next line will
+                              be a name and a description. This should
+                              be formatted as the example below.
+    blank line  ->  .Pp     : Blank Line
+    - <string>  ->  .It     : List item.
+    -<char>     ->  .It Fl  : List element and a space after the <char>
+                              is assumed to be an argument to the flag.
+    EXAMPLE:
+      -<char>          ->  .It Fl <char>
+      -<char> <string> ->  .It Fl <char> Ar <string>
+      - <string>       ->  .It <string>
 .Pp
--           ->  .El     : A single dash--followed by a newline--is
-assumed to be a `list end`.
-~           ->  .El     : An alternate `list end` character.
-~ <string>  ->  .It     : List item.
-<           ->  .nf     : Start of a `no format` block.
->           ->  .fi     : End of a `no format` block.
-```         ->  .nf     : Start/End of a `no format` block.
-`           ->  .Li     : Literal
-*           ->  .Bf     : Bold
-_           ->  .Em     : Italic
-^           ->  .Sx     : Reference
-[           ->  .Op     : Optional argument
-author:     ->  .Au     : Author
-date:       ->  .Dd     : Date
-title:      ->  .Dt .Os : Document title with section number. See
-manual section numbers and example below.
-<!--         ->          : Start of a comment block.
--->          ->          : End of a comment block.
+    -           ->  .El     : A single dash--followed by a newline--is
+                              assumed to be a `list end`.
+    ~           ->  .El     : An alternate `list end` character.
+    ~ <string>  ->  .It     : List item.
+    <           ->  .nf     : Start of a `no format` block.
+    >           ->  .fi     : End of a `no format` block.
+    ```         ->  .nf     : Start/End of a `no format` block.
+    `           ->  .Li     : Literal
+    *           ->  .Bf     : Bold
+    _           ->  .Em     : Italic
+    ^           ->  .Sx     : Reference
+    [           ->  .Op     : Optional argument
+    author:     ->  .Au     : Author
+    date:       ->  .Dd     : Date
+    title:      ->  .Dt .Os : Document title with section number. See
+                              manual section numbers and example below.
+   <!--         ->          : Start of a comment block.
+   -->          ->          : End of a comment block.
 .Ed
 .Pp
 .Sh SAMPLE MARKDOWN EXAMPLE
 .Pp
 .Bd -literal -offset indent
-<!--
-This is a markdown comment block and should be ignored
-(i.e. not added to mdoc file).
--->
-.\\\\\\" Copyright (c) <year> <who>
-.\\\\\\" SPDX-License-Identifier: BSD-2-Clause
+    <!--
+        This is a markdown comment block and should be ignored
+        (i.e. not added to mdoc file).
+    -->
+    .\\\\\\" Copyright (c) <year> <who>
+    .\\\\\\" SPDX-License-Identifier: BSD-2-Clause
 .Pp
-date: Feb 03 2024
-title: progname 7
-author: John Kaul
+    date: Feb 03 2024
+    title: progname 7
+    author: John Kaul
 .Pp
-# NAME
-progname -- a program to change the world.
+    # NAME
+    progname -- a program to change the world.
 .Pp
-# SYNOPSIS
-progname
-[-abc]
-[-f file]
-inpputfile
-outputfile
+    # SYNOPSIS
+    progname
+    [-abc]
+    [-f file]
+    inpputfile
+    outputfile
 .Pp
-# DESCRIPTION
-This utility will change the world because
-it will remove all leading spaces from lines
-in a text file.
+    # DESCRIPTION
+    This utility will change the world because
+    it will remove all leading spaces from lines
+    in a text file.
 .Pp
-~ A List item.
-~ Another list item.
-~
+    ~ A List item.
+    ~ Another list item.
+    ~
 .Pp
-## BACKSLASHES
-A backslash (\) will escape a formatting character
-like this: \\*this will not be bold\\*.
+    ## BACKSLASHES
+    A backslash (\) will escape a formatting character
+    like this: \\*this will not be bold\\*.
 .Pp
-# OPTIONS
--a
-Append to the outout file.
+    # OPTIONS
+    -a
+        Append to the outout file.
 .Pp
--b
-Use backward searching patterns (?...?).
+    -b
+        Use backward searching patterns (?...?).
 .Pp
--c
-Another flag.
+    -c
+        Another flag.
 .Pp
--f file
-Pass a file argument to this option.
+    -f file
+        Pass a file argument to this option.
 .Pp
-- inputfile
-The file to pass as an input.
+    - inputfile
+        The file to pass as an input.
 .Pp
-- outputfile
-The file to write.
--
+    - outputfile
+        The file to write.
+    -
 .Pp
-# CODE EXAMPLE
-```c
-unsigned long   str_version;    /* version number */
-unsigned long   str_numstr;     /* # of strings in the file */
-unsigned long   str_longlen;    /* length of longest string */
-```
+    # CODE EXAMPLE
+    ```c
+        unsigned long   str_version;    /* version number */
+        unsigned long   str_numstr;     /* # of strings in the file */
+        unsigned long   str_longlen;    /* length of longest string */
+    ```
 .Pp
-*WARNING:*
-Never do the above.
+    *WARNING:*
+        Never do the above.
 .Pp
-_NOTE:_
-This is a note block.
+    _NOTE:_
+        This is a note block.
 .Pp
-# SEE ALSO
-^this(1)^, ^that(2)^, ^theotherthing(3)^
+    # SEE ALSO
+    ^this(1)^, ^that(2)^, ^theotherthing(3)^
 .Ed
 .Pp
 .Em NOTE:
-Most symbols will naturally occur at the start of a line (header,
-code block, etc.) but a few items like *bold*, _italic_,
-`literal`, and ^refernces^, can be nested within the text.
+    Most symbols will naturally occur at the start of a line (header,
+    code block, etc.) but a few items like *bold*, _italic_,
+    `literal`, and ^refernces^, can be nested within the text.
 .Pp
 .Ss MANUAL SECTIONS
 The standard sections for man pages:
 .Bd -literal -offset indent
-1      User Commands
-2      System Calls
-3      C Library Functions
-4      Devices and Special Files
-5      File Formats and Conventions
-6      Games et. Al.
-7      Miscellanea
-8      System Administration tools and Deamons
+       1      User Commands
+       2      System Calls
+       3      C Library Functions
+       4      Devices and Special Files
+       5      File Formats and Conventions
+       6      Games et. Al.
+       7      Miscellanea
+       8      System Administration tools and Deamons
 .Ed
 .Pp
 .Sh MARKDOWN COMMENTS
@@ -183,21 +183,21 @@ Create an 'output'
 .Xr mandoc 1  
 file from markdown 'input':
 .Bd -literal -offset indent
-% md2mdoc -o output input
+    % md2mdoc -o output input
 .Ed
 .Pp
 Create an 'output' 
 .Xr mandoc 1  
 file from markdown 'input' via redirect:
 .Bd -literal -offset indent
-% md2mdoc input > output
+    % md2mdoc input > output
 .Ed
 .Pp
 Pipe a markdown file 'input' to 
 .Xr mandoc 1  
 for processing on the fly:
 .Bd -literal -offset indent
-% md2mdoc input | mandoc -mdoc
+    % md2mdoc input | mandoc -mdoc
 .Ed
 .Pp
 Pipe a markdown file 'input' to 
@@ -206,7 +206,7 @@ for viewing with
 .Xr less 1 
 :
 .Bd -literal -offset indent
-% md2mdoc input | mandoc -mdoc | less
+    % md2mdoc input | mandoc -mdoc | less
 .Ed
 .Pp
 Pipe a markdown file 'input' to 
@@ -215,7 +215,7 @@ for viewing with
 .Xr vim 1 
 :
 .Bd -literal -offset indent
-% md2mdoc input | mandoc -mdoc | vim -M +MANPAGER -c 'map q :q<CR>' -
+    % md2mdoc input | mandoc -mdoc | vim -M +MANPAGER -c 'map q :q<CR>' -
 .Ed
 .Pp
 .Sh SEE ALSO
