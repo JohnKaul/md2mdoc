@@ -57,7 +57,7 @@
 //      ...
 //===-------------------------------------------------------------===
 
-//:~  #include "version.h"
+#include "version.h"
 
 #include <ctype.h>
 #include <err.h>
@@ -125,8 +125,9 @@ unsigned int commentflag     = 0;                       /* Used for comment bloc
  *      arguments.
  */
 static void printusage(char *str) {
-  fprintf(stderr, "**** Usage: %s <markdownfile>\n", str);
-  fprintf(stderr, "**** Usage: %s <markdownfile> -o <outfile>\n", str);
+  fprintf(stderr, "%s version: %s\n", str, program_version);
+  fprintf(stderr, "Usage: %s <markdownfile>\n", str);
+  fprintf(stderr, "Usage: %s <markdownfile> -o <outfile>\n", str);
 }
 
 /**
