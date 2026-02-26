@@ -602,6 +602,11 @@ int main(int argc, char *argv[]) {
       if (argv[i][0] != '-') { filedescriptors[0] = fopen(argv[i], "r"); }
       if (argv[i][0] == '-' && argv[i][1] == 'o') { filedescriptors[1] = fopen(argv[++i], "w"); }
 
+      /* print help/version */
+      if (argv[i][0] == '-' && argv[i][1] == 'h') { printusage(argv[0]); return 1; }
+      if (argv[i][0] == '-' && argv[i][1] == 'v') { printusage(argv[0]); return 1; }
+
+      /* ignore pipes and redirects */
       if (argv[i][0] == '|' || \
           argv[i][0] == '>') { break; }
     }
