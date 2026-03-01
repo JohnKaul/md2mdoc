@@ -17,8 +17,10 @@
 // KEY:
 // ------------------------------------------------------------------
 // #           ->  .Sh     : section headers
+// ##          ->  .Ss     : sub section
 // blank line  ->  .Pp     : Blank Line
 // @           ->  .Nm     : Project Name
+// $name       ->  .Nm     : Project Name
 // -<char>     ->  .It Fl  : List element
 // -\n         ->  .El     : A single dash is assumed to be a `list end`.
 // ~ <char>    ->  .It\n   : List element
@@ -83,10 +85,10 @@
 //-------------------------------------------------------------------
 #define SECTION ".Sh"
 #define SUBSECTION ".Ss"
-#define BOLD ".Sy "
-#define ITALIC ".Em "
-#define INLINE ".Li "
-#define REFERENCE ".Xr "
+#define BOLD ".Sy"
+#define ITALIC ".Em"
+#define INLINE ".Li"
+#define REFERENCE ".Xr"
 #define OPTIONAL ".Op"
 #define FLAG " Fl "
 #define ARGUMENT " Ar "
@@ -94,6 +96,9 @@
 #define AUTHOR ".Au"
 #define DATE ".Dd"
 #define TITLE ".Dt"
+#define NAME ".Nm"
+#define SECTIONREFERENCE ".Sx"
+#define COMMANDMODIFIER ".Cm"
 
 //-------------------------------------------------------------------
 // Function Prototypes
@@ -218,6 +223,41 @@ static int read_until(const char **src, char delim, char *dst, size_t dstcap) {
 }
 
 /**
+ * read_upto --
+ *      Read characters from *src into dst up to delim or NUL or capacity-1.
+ *
+ * Parameters:
+ *  src      -   Pointer to input pointer; advanced as characters are consumed.
+ *  delim    -   Delimiter character to stop at (not copied).
+ *  dst      -   Destination buffer for extracted token (NUL-terminated).
+ *  dstcap   -   Capacity of dst in bytes.
+ *
+ * Returns 1 if delim was found, 0 otherwise.
+ */
+static int read_upto(const char **src, const char *delims, char *dst, size_t dstcap) {
+    size_t i = 0;
+    const char *p = *src;
+
+    if (delims == NULL || *delims == '\0') { /* nothing to stop on */
+        return 0;
+    }
+
+    while (*p && strchr(delims, *p) == NULL) {
+        if (i + 1 < dstcap) {          /* leave room for NUL */
+            dst[i++] = *p;
+        }
+        p++;
+    }
+    dst[i] = '\0';
+
+    if (*p && strchr(delims, *p) != NULL) {
+        *src = p;
+        return 1;
+    }
+   return 0;
+}
+
+/**
  * Sanitize --
  *      Allow only "white-listed" chars in string.
  */
@@ -262,17 +302,32 @@ static void processnested(FILE *out, const char *str) {
 
     while (*p) {
         switch (*p) {
-          case '@':                                     /* UNDOCUMENTED - Shortcut for '.Nm' (project name) */
+          case '@':                                     /* UNDOCUMENTED - "modifiers"
+                                                           Shortcut for '.Cm' (Command Modifier) */
+            p++;
+            read_upto(&p, ", \n:;", tok, sizeof(tok));
+            if (cntr >= 1) fprintf(out, "\n");
+            fprintf(out, COMMANDMODIFIER " %s\n", tok);
+            skip_one_space_or_newline(&p);
+            break;
+          case '$':                                     /* UNDOCUMENTED - "reference"
+                                                           Shortcut for '.Nm' (project name) */
             p++;
             if (cntr >= 1) fprintf(out, "\n");
-            fprintf(out, ".Nm\n");
-            read_until(&p, ' ', tok, sizeof(tok));
+            read_upto(&p, " ,\n:;", tok, sizeof(tok));
+            skip_one_space_or_newline(&p);
+            if (strncmp(tok, "name", 4) == 0) {
+              fprintf(out, NAME "\n");
+            } else {                                    /* UNDOCUMENTED - "section reference" */
+              fprintf(out, SECTIONREFERENCE " %s\n", tok);
+              skip_one_space_or_newline(&p);
+            }
             break;
         case '*':                                       /* bold -> .Sy %s\n */
             p++;                                        /* eat '*' */
             read_until(&p, '*', tok, sizeof(tok));
             if (cntr >= 1) fprintf(out, "\n");
-            fprintf(out, BOLD "%s\n", tok);
+            fprintf(out, BOLD " %s\n", tok);
             skip_one_space_or_newline(&p);
             break;
 
@@ -280,7 +335,7 @@ static void processnested(FILE *out, const char *str) {
             p++;
             read_until(&p, '_', tok, sizeof(tok));
             if (cntr >= 1) fprintf(out, "\n");
-            fprintf(out, ITALIC "%s\n", tok);
+            fprintf(out, ITALIC " %s\n", tok);
             skip_one_space_or_newline(&p);
             break;
 
@@ -288,7 +343,7 @@ static void processnested(FILE *out, const char *str) {
             p++;
             read_until(&p, '`', tok, sizeof(tok));
             if (cntr >= 1) fprintf(out, "\n");
-            fprintf(out, INLINE "%s\n", tok);
+            fprintf(out, INLINE " %s\n", tok);
             skip_one_space_or_newline(&p);
             break;
 
@@ -297,7 +352,7 @@ static void processnested(FILE *out, const char *str) {
             read_until(&p, '^', tok, sizeof(tok));
             sanitize(tok, strlen(tok));
             if (cntr >= 1) fprintf(out, "\n");
-            fprintf(out, REFERENCE "%s", tok);
+            fprintf(out, REFERENCE " %s", tok);
             while (*p == ' ' || \
                 *p == ',' || \
                 *p == '.')
@@ -452,7 +507,7 @@ static void processline(FILE *out, char *str) {
           fprintf(out, ITEM);                           /* Add a 'list item' macro */
 
           if (isalpha(*str) > 0)                        /* if the next item is (A-Za-z) char. */
-            fprintf(out, " Fl ");                       /* Add a 'flag' macro. */
+            fprintf(out, FLAG);                       /* Add a 'flag' macro. */
 
           fprintf(out, "%c", *str);                     /* Print the flag. */
           ++str;
