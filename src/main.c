@@ -451,6 +451,7 @@ static void processline(FILE *out, char *str) {
             nameflag = 1;
           }
         }
+
         return;
       case '[':                                         // Start of an optional argument
                                                         // EG: to process the "[-abc]"
@@ -465,12 +466,26 @@ static void processline(FILE *out, char *str) {
             ++str;                                     /* eat the dash */
           } while (*str != ' '  && *str != ']');
           if (*str == ' ') {                            /* If we've found a space, this means we've found an
-                                                           optional argument. */
+                                                           optional argument. 
+                                                           eg [-abc optional]
+                                                                   ^            */
             fprintf(out, ARGUMENT);
 
 
             do {                                       /* Print the chars until we find the closing bracket */
               ++str;                                   /* eat the space */
+
+              if(*str == '[') {  // If we locate a bracket at this
+                                 // level, we've found another layer
+                                 // of optional arguments...
+                                 // EG
+                                 // [-abc [optional]]
+                                 //       ^
+                do {                                   /* Print the chars until we find the closing bracket */
+                  fprintf(out, "%c", *str);
+                } while (*str++ != ']');
+              }
+
               if (*str != ']')
                 fprintf(out, "%c", *str);
             } while (*str != ']' && *str != '\0');
