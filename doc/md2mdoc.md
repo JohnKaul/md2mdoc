@@ -205,7 +205,6 @@ List types are:
  -             End list item.
  ~ string      List item: [-dash -compact]
  ~             End list item.
- `string`      Inline literal.
 ```
 ## Sections and cross references
 ```
