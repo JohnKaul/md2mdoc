@@ -19,8 +19,8 @@
 // #           ->  .Sh     : section headers
 // ##          ->  .Ss     : sub section
 // blank line  ->  .Pp     : Blank Line
-// @           ->  .Nm     : Project Name
 // $name       ->  .Nm     : Project Name
+// @string     ->  .Cm     : Command Modifier
 // -<char>     ->  .It Fl  : List element
 // -\n         ->  .El     : A single dash is assumed to be a `list end`.
 // ~ <char>    ->  .It\n   : List element
@@ -83,6 +83,10 @@
 //-------------------------------------------------------------------
 // Constants Declarations
 //-------------------------------------------------------------------
+#define TRUE 1
+#define FALSE 0
+#define stripspaces()  while (isspace(*str) > 0 && *str != '\0') str++;
+
 #define SECTION ".Sh"
 #define SUBSECTION ".Ss"
 #define BOLD ".Sy"
@@ -109,7 +113,8 @@ static void processline(FILE *out, char *str);          /* Process one line of t
 static void processnested(FILE *out, const char *str);
 static int readline(FILE *fd, char *buf, int nbytes);   /* Read a line of text from file. */
 static int cimemcmp(const void *s1, const void *s2, size_t n); /* case independent memory regon compare */
-static int read_until(const char **src, char delim, char *dst, size_t dstcap);
+//:~  static int read_until(const char **src, char delim, char *dst, size_t dstcap);
+static int read_upto(const char **src, const char *delims, char *dst, size_t dstcap, int eatfinalchar);
 static void skip_one_space_or_newline(const char **src);
 
 //-------------------------------------------------------------------
@@ -185,56 +190,21 @@ static int cimemcmp(const void *s1, const void *s2, size_t n) {
 }
 
 /**
- * read_until --
- *      Read characters from *src into dst up to delim or NUL or capacity-1.
- *
- * NOTES:
- *  Advances *src to the character after the closing delim if found, otherwise
- *  advances *src to the terminating NUL. Always NUL-terminates dst.
- *
- * Parameters:
- *  src      -   Pointer to input pointer; advanced as characters are consumed.
- *  delim    -   Delimiter character to stop at (not copied).
- *  dst      -   Destination buffer for extracted token (NUL-terminated).
- *  dstcap   -   Capacity of dst in bytes.
- *
- * Returns 1 if delim was found and consumed (i.e., *src advanced past it), 0 otherwise.
- */
-static int read_until(const char **src, char delim, char *dst, size_t dstcap) {
-    size_t i = 0;
-    const char *p = *src;
-
-    while (*p && *p != delim) {
-        if (i + 1 < dstcap) {          /* leave room for NUL */
-            dst[i++] = *p;
-        }
-        p++;
-    }
-    dst[i] = '\0';
-
-    if (*p == delim) {
-        p++;                           /* consume closing delim */
-        *src = p;
-        return 1;
-    } else {
-        *src = p;                      /* reached NUL */
-        return 0;
-    }
-}
-
-/**
  * read_upto --
- *      Read characters from *src into dst up to delim or NUL or capacity-1.
- *
+ *      Read characters from *src into dst up to delim or NUL or
+ *      capacity-1.
  * Parameters:
- *  src      -   Pointer to input pointer; advanced as characters are consumed.
+ *  src      -   Pointer to input pointer; advanced as characters are
+ *               consumed.
  *  delim    -   Delimiter character to stop at (not copied).
- *  dst      -   Destination buffer for extracted token (NUL-terminated).
+ *  dst      -   Destination buffer for extracted token
+ *               (NUL-terminated).
  *  dstcap   -   Capacity of dst in bytes.
  *
  * Returns 1 if delim was found, 0 otherwise.
  */
-static int read_upto(const char **src, const char *delims, char *dst, size_t dstcap) {
+static int read_upto(const char **src, const char *delims,
+                     char *dst, size_t dstcap, int eatfinalchar) {
     size_t i = 0;
     const char *p = *src;
 
@@ -251,8 +221,9 @@ static int read_upto(const char **src, const char *delims, char *dst, size_t dst
     dst[i] = '\0';
 
     if (*p && strchr(delims, *p) != NULL) {
-        *src = p;
-        return 1;
+      if (eatfinalchar) p++;                           /* consume closing delim */
+      *src = p;
+      return 1;
     }
    return 0;
 }
@@ -289,7 +260,8 @@ static void skip_one_space_or_newline(const char **src) {
 
 /**
  * processnested --
- *      Process inline (nested) tokens from string `s` and write formatted output to `fd`.
+ *      Process inline (nested) tokens from string `s` and write
+ *      formatted output to `fd`.
  *
  * Parameters:
  *  fd  -   File descriptor
@@ -305,7 +277,7 @@ static void processnested(FILE *out, const char *str) {
           case '@':                                     /* UNDOCUMENTED - "modifiers"
                                                            Shortcut for '.Cm' (Command Modifier) */
             p++;
-            read_upto(&p, ", \n:;", tok, sizeof(tok));
+            read_upto(&p, ", :;)'\"", tok, sizeof(tok), FALSE);
             if (cntr >= 1) fprintf(out, "\n");
             fprintf(out, COMMANDMODIFIER " %s\n", tok);
             skip_one_space_or_newline(&p);
@@ -314,18 +286,18 @@ static void processnested(FILE *out, const char *str) {
                                                            Shortcut for '.Nm' (project name) */
             p++;
             if (cntr >= 1) fprintf(out, "\n");
-            read_upto(&p, " ,\n:;", tok, sizeof(tok));
+            read_upto(&p, "'\") ,\n:;", tok, sizeof(tok), FALSE);
             skip_one_space_or_newline(&p);
             if (strncmp(tok, "name", 4) == 0) {
               fprintf(out, NAME "\n");
             } else {                                    /* UNDOCUMENTED - "section reference" */
               fprintf(out, SECTIONREFERENCE " %s\n", tok);
               skip_one_space_or_newline(&p);
-            }
+           }
             break;
         case '*':                                       /* bold -> .Sy %s\n */
             p++;                                        /* eat '*' */
-            read_until(&p, '*', tok, sizeof(tok));
+            read_upto(&p, "*),;", tok, sizeof(tok), TRUE);
             if (cntr >= 1) fprintf(out, "\n");
             fprintf(out, BOLD " %s\n", tok);
             skip_one_space_or_newline(&p);
@@ -333,7 +305,7 @@ static void processnested(FILE *out, const char *str) {
 
         case '_':                                       /* italic -> .Em %s\n */
             p++;
-            read_until(&p, '_', tok, sizeof(tok));
+            read_upto(&p, "_", tok, sizeof(tok), TRUE);
             if (cntr >= 1) fprintf(out, "\n");
             fprintf(out, ITALIC " %s\n", tok);
             skip_one_space_or_newline(&p);
@@ -341,7 +313,7 @@ static void processnested(FILE *out, const char *str) {
 
         case '`':                                       /* inline literal -> .Li %s\n */
             p++;
-            read_until(&p, '`', tok, sizeof(tok));
+            read_upto(&p, "`", tok, sizeof(tok), TRUE);
             if (cntr >= 1) fprintf(out, "\n");
             fprintf(out, INLINE " %s\n", tok);
             skip_one_space_or_newline(&p);
@@ -349,7 +321,7 @@ static void processnested(FILE *out, const char *str) {
 
         case '^':                                       /* reference -> .Xr %s\n */
             p++;
-            read_until(&p, '^', tok, sizeof(tok));
+            read_upto(&p, "^", tok, sizeof(tok), TRUE);
             sanitize(tok, strlen(tok));
             if (cntr >= 1) fprintf(out, "\n");
             fprintf(out, REFERENCE " %s", tok);
@@ -389,8 +361,6 @@ static void processnested(FILE *out, const char *str) {
     } /* while */
 }
 
-#define stripspaces()  while (isspace(*str) > 0 && *str != '\0') str++;
-
 /**
  * processline --
  *      This process the current line from the file and handles
@@ -401,8 +371,8 @@ static void processnested(FILE *out, const char *str) {
  *  str -   string to search
  */
 static void processline(FILE *out, char *str) {
-    int c;                                              /* Current character */
-    c = *str;                                           /* Start at the beginning of the string */
+    int c;
+    c = *str;
 
     switch (c) {
       /* stripwhitespace = 0; */
