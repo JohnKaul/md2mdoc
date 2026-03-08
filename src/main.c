@@ -86,6 +86,7 @@
 #define TRUE 1
 #define FALSE 0
 #define stripspaces()  while (isspace(*str) > 0 && *str != '\0') str++;
+#define stripnewline()  while (*str == '\n' || *str != '\0') str++;
 
 #define SECTION ".Sh"
 #define SUBSECTION ".Ss"
@@ -203,8 +204,7 @@ static int cimemcmp(const void *s1, const void *s2, size_t n) {
  *
  * Returns 1 if delim was found, 0 otherwise.
  */
-static int read_upto(const char **src, const char *delims,
-                     char *dst, size_t dstcap, int eatfinalchar) {
+static int read_upto(const char **src, const char *delims, char *dst, size_t dstcap, int eatfinalchar) {
     size_t i = 0;
     const char *p = *src;
 
@@ -237,7 +237,7 @@ static void sanitize(char *user_data, size_t n) {
   static char ok_chars[] = "abcdefghijklmnopqrstuvwxyz"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "1234567890"
-    " \f\t\n"
+    " \f\t"
     "_"
     ;
   const char *end = user_data + n;
@@ -277,8 +277,8 @@ static void processnested(FILE *out, const char *str) {
           case '@':                                     /* UNDOCUMENTED - "modifiers"
                                                            Shortcut for '.Cm' (Command Modifier) */
             p++;
-            read_upto(&p, ", :;)'\"", tok, sizeof(tok), FALSE);
             if (cntr >= 1) fprintf(out, "\n");
+            read_upto(&p, " ,\n:;()", tok, sizeof(tok), FALSE);
             fprintf(out, COMMANDMODIFIER " %s\n", tok);
             skip_one_space_or_newline(&p);
             break;
@@ -297,7 +297,7 @@ static void processnested(FILE *out, const char *str) {
             break;
         case '*':                                       /* bold -> .Sy %s\n */
             p++;                                        /* eat '*' */
-            read_upto(&p, "*),;", tok, sizeof(tok), TRUE);
+            read_upto(&p, "*,) \n;:", tok, sizeof(tok), TRUE);
             if (cntr >= 1) fprintf(out, "\n");
             fprintf(out, BOLD " %s\n", tok);
             skip_one_space_or_newline(&p);
@@ -305,7 +305,7 @@ static void processnested(FILE *out, const char *str) {
 
         case '_':                                       /* italic -> .Em %s\n */
             p++;
-            read_upto(&p, "_", tok, sizeof(tok), TRUE);
+            read_upto(&p, "_ \n,.;:)", tok, sizeof(tok), TRUE);
             if (cntr >= 1) fprintf(out, "\n");
             fprintf(out, ITALIC " %s\n", tok);
             skip_one_space_or_newline(&p);
@@ -313,7 +313,7 @@ static void processnested(FILE *out, const char *str) {
 
         case '`':                                       /* inline literal -> .Li %s\n */
             p++;
-            read_upto(&p, "`", tok, sizeof(tok), TRUE);
+            read_upto(&p, "`\n", tok, sizeof(tok), TRUE);
             if (cntr >= 1) fprintf(out, "\n");
             fprintf(out, INLINE " %s\n", tok);
             skip_one_space_or_newline(&p);
@@ -321,7 +321,7 @@ static void processnested(FILE *out, const char *str) {
 
         case '^':                                       /* reference -> .Xr %s\n */
             p++;
-            read_upto(&p, "^", tok, sizeof(tok), TRUE);
+            read_upto(&p, "^ \n,.;:", tok, sizeof(tok), TRUE);
             sanitize(tok, strlen(tok));
             if (cntr >= 1) fprintf(out, "\n");
             fprintf(out, REFERENCE " %s", tok);
@@ -374,6 +374,23 @@ static void processline(FILE *out, char *str) {
     int c;
     c = *str;
 
+    if(nameflag == 1) {                             /* If we are supposed to process a name... */
+      fprintf(out, ".Nm ");
+      do {                                          /* Print this chars until NOT a dash */
+        if (*str != '-')
+          fprintf(out, "%c", *str);
+        ++str;                                      /* Eat the char */
+        if (*str == '-') {                          /* If we've encounted a dash, check for a doubledash. */
+          if(memcmp(str, "--", 2) == 0) {         /* double dashes signifies a `namedescription`. */
+            str += 2;                               /* Eat the `--` string */
+            fprintf(out, "\n.Nd");
+          }
+        }
+      } while (*str != '\n');
+      nameflag = 0;                                 /* turn off the `nameflag`. */
+      fprintf(out, "\n");
+    }
+
     switch (c) {
       /* stripwhitespace = 0; */
       case '\n':                                        // Newlines are replaced with a break.
@@ -410,7 +427,7 @@ static void processline(FILE *out, char *str) {
         } else if(strncmp(str, "# ", 2) == 0) {
           sanitize(str, strlen(str));                   /* sanitize rest of string of all hashs */
           stripspaces();
-          fprintf(out, SECTION " %s", str);
+          fprintf(out, SECTION " %s\n", str);
           if(cimemcmp(str, "NAME", 4) == 0) {           /* If we've found a "NAME" heading, we can
                                                            assume the section looks something like:
                                                               # NAME
@@ -434,9 +451,9 @@ static void processline(FILE *out, char *str) {
             if (*str != ' ')
               fprintf(out, "%c", *str);
             ++str;                                     /* eat the dash */
-          } while (*str != ' '  && *str != ']');
+          } while (*str != ' ' && *str != ']' && *str != '\n' && *str != '\0');
           if (*str == ' ') {                            /* If we've found a space, this means we've found an
-                                                           optional argument. 
+                                                           optional argument.
                                                            eg [-abc optional]
                                                                    ^            */
             fprintf(out, ARGUMENT);
@@ -445,20 +462,21 @@ static void processline(FILE *out, char *str) {
             do {                                       /* Print the chars until we find the closing bracket */
               ++str;                                   /* eat the space */
 
-              if(*str == '[') {  // If we locate a bracket at this
-                                 // level, we've found another layer
-                                 // of optional arguments...
-                                 // EG
-                                 // [-abc [optional]]
-                                 //       ^
+                if(*str == '[') {                      // If we locate a bracket at this
+                                                       // level, we've found another layer
+                                                       // of optional arguments...
+                                                       // EG
+                                                       // [-abc [optional]]
+                                                       //       ^
                 do {                                   /* Print the chars until we find the closing bracket */
                   fprintf(out, "%c", *str);
-                } while (*str++ != ']');
-              }
+                } while (*str++ != ']' && *str != '\n' && *str != '\0');
+                break;
+               }
 
               if (*str != ']')
                 fprintf(out, "%c", *str);
-            } while (*str != ']' && *str != '\0');
+            } while (*str != ']' && *str != '\n' && *str != '\0');
           }
           ++str;                                        /* Eat the last bracket */
         } else {                                        /* Assume this is just a plain optional arguemnt */
@@ -467,7 +485,7 @@ static void processline(FILE *out, char *str) {
              if (*str != ']')
                fprintf(out, "%c", *str);
              ++str;                                     /* Eat the closing bracket */
-           } while (*str != ']');
+           } while (*str != ']' && *str != '\n' && *str != '\0');
         }
 
         fprintf(out, "\n");
@@ -475,7 +493,7 @@ static void processline(FILE *out, char *str) {
 
       case '-':                                         // A list item or a single dash is a list terminator
                                                         // EG: "-f" or "-f file" or just "-"
-        if(strncmp(str, "-->", 3) == 0) {              /* First check if this is the end of a comment block */
+        if(strncmp(str, "-->", 3) == 0) {               /* First check if this is the end of a comment block */
           commentflag = 0;
           return;
         }
@@ -492,7 +510,7 @@ static void processline(FILE *out, char *str) {
           fprintf(out, ITEM);                           /* Add a 'list item' macro */
 
           if (isalpha(*str) > 0)                        /* if the next item is (A-Za-z) char. */
-            fprintf(out, FLAG);                       /* Add a 'flag' macro. */
+            fprintf(out, FLAG);                         /* Add a 'flag' macro. */
 
           fprintf(out, "%c", *str);                     /* Print the flag. */
           ++str;
@@ -554,8 +572,8 @@ static void processline(FILE *out, char *str) {
       case '`':                                         // Code block
                                                         //   In markdown, READMEs, forum posts, etc.
                                                         //   codeblocks are defined with three (3) backticks.
-        if(cimemcmp(str, "```", 3) == 0) {
-          if(codeblock == 0) {                          /* Check to see if the `codeblock` flag has been set. */
+        if (cimemcmp(str, "```", 3) == 0) {
+          if (codeblock == 0) {                          /* Check to see if the `codeblock` flag has been set. */
             fprintf(out, ".Bd -literal -offset indent\n");
             stripwhitespace = 0;                        /* Disable stripwhitespace. */
             codeblock = 1;
@@ -568,33 +586,11 @@ static void processline(FILE *out, char *str) {
         }
 
       default:
-        if(commentflag == 1) {
+        if (commentflag == 1) {
           return;
         }
-        if(stripwhitespace == 1) {
+        if (stripwhitespace == 1) {
           while (isspace(*str) > 0) str++;
-        }
-
-        if(nameflag == 1) {                             /* If we are supposed to process a name... */
-          fprintf(out, ".Nm ");
-          do {                                          /* Print this chars until NOT a dash */
-            if (*str != '-')
-              fprintf(out, "%c", *str);
-            ++str;                                      /* Eat the char */
-            if (*str == '-') {                          /* If we've encounted a dash, check for a doubledash. */
-              if(cimemcmp(str, "--", 2) == 0) {         /* double dashes signifies a `namedescription`. */
-                str += 2;                               /* Eat the `--` string */
-                fprintf(out, "\n.Nd");
-                do {
-                  if (*str != '\n' || \
-                      *str != ' ')
-                    fprintf(out, "%c", *str);
-                  ++str;
-                } while (*str != '\n');
-              }
-            }
-          } while (*str != '\n');
-          nameflag = 0;                                 /* turn off the `nameflag`. */
         }
 
         if (codeblock == 0) {                           /* If we're not in a clode block... */
