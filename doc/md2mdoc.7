@@ -1,29 +1,28 @@
 .\" Copyright (c) 2026 John Kaul
 .\" SPDX-License-Identifier: BSD-2-Clause
-.Dd Feb 02 2026
+.Dd Mar 18 2026
 .Dt md2mdoc 7
 .Os
 .Au John Kaul
 .Pp
-.Sh NAME
+.Sh NAME 
 .Nm md2mdoc 
 .Nd a simple markdown to mdoc converter.
 .Pp
-.Sh SYNOPSIS
+.Sh SYNOPSIS 
 .Nm
 .Op Fl o Ar outputfile
 inputfile
 .Pp
-.Sh OPTIONS
+.Sh OPTIONS 
 .Bl -tag -width Ds
 .It Fl o Ar outputfile
 A mandoc file to write.
-.Pp
 .It inputfile
 A file written in the markdown syntax outlined below.
 .El
 .Pp
-.Sh DESCRIPTION
+.Sh DESCRIPTION 
 This utility will convert simple markdown syntax characters to 
 .Xr mdoc 7  
 (man page) format characters. It will remove all leading spaces from lines unless within a code block. It will print to 
@@ -34,7 +33,7 @@ This utility is not intelligent at all, it will give wonky results if confused b
 .Pp
 The use of this utility is intended to offer a way to keep project notes/documentation in a simple markdown format (plain text) where large sections can be added/deleted easier. When the time comes to create more formal documentation, this utility aids in that process (assuming your markdown isn't too complicated).
 .Pp
-.Sh CHARACTER CONVERSION TABLE
+.Sh CHARACTER CONVERSION TABLE 
 .Pp
 .Bd -literal -offset indent
  markdown         mdoc       description
@@ -49,7 +48,8 @@ The use of this utility is intended to offer a way to keep project notes/documen
  -char         ->  .It Fl  : List element and a space after the <char>
                              is assumed to be an argument to the flag.
  -             ->  .El     : A single dash--followed by a newline--is
-                             a `list end` character.
+                             a `list end` character (required for tag
+                             type lists).
  ,---
  | EXAMPLE:
  |   -char             ->    .It Fl <char>
@@ -60,13 +60,8 @@ The use of this utility is intended to offer a way to keep project notes/documen
 .Pp
  ~ string      ->  .It     : List item (type: dash).
  ~             ->  .El     : A tilde--followed by a newline--is a
-                             `list end` character.
- ,---
- | EXAMPLE:
- |   ~ string          ->    .It <string>
- |   ~                 ->    .El
- `---
-.Pp
+                             `list end` character (optional for dash
+                             type lists).
  <             ->  .Bd     : Start of a `no format` ("begin display") block.
  >             ->  .Fi     : End of a `no format` block.
  ```           ->  .Bd     : Start/End of a `no format` ("begin display") block.
@@ -87,7 +82,7 @@ The use of this utility is intended to offer a way to keep project notes/documen
  -->           ->          : End of a comment block.
 .Ed
 .Pp
-.Sh SAMPLE MARKDOWN EXAMPLE
+.Sh SAMPLE MARKDOWN EXAMPLE 
 .Pp
 .Bd -literal -offset indent
  <!--
@@ -117,10 +112,9 @@ The use of this utility is intended to offer a way to keep project notes/documen
 .Pp
  ~ A List item.
  ~ Another list item.
- ~
 .Pp
  # OPTIONS
- -a
+ -a --append
      Append to the outout file.
 .Pp
  -b
@@ -159,18 +153,18 @@ The use of this utility is intended to offer a way to keep project notes/documen
 .Em NOTE:
 Most symbols will naturally occur at the start of a line (header, code block, etc.) but a few items like *bold*, _italic_, `literal`, and ^refernces^, can be nested within the text.
 .Pp
-.Sh MARKDOWN SYNTAX ELEMENTS
+.Sh MARKDOWN SYNTAX ELEMENTS 
 Markdown syntax elements 
 .Nm
 parses.
 .Pp
-.Ss Document preamble
+.Ss Document preamble 
 .Bd -literal -offset indent
  date:         document date (one argument)
  title:        document title (one argument)
  author:       document author (one argument)
 .Ed
-.Ss Semantic markup for command line utilities
+.Ss Semantic markup for command line utilities 
 When 
 .Nm
 encounters a section header titled 
@@ -187,6 +181,7 @@ markdown shortcut can be used which will be replaced with the .Nm macro in the
 .Xr mdoc 1  
 output.
 .Pp
+.Ss Synopsis 
 Utility argument and flag strings are parsed by placing them in square brackets ([ ]) and I have found that it's often easier to place these argument strings on their own lines (especially during the design phase of my utilities). The utility argument strings will only be parsed if they are on a line of their own.
 .Pp
 .Bd -literal -offset indent
@@ -195,7 +190,8 @@ Utility argument and flag strings are parsed by placing them in square brackets 
  [argument]
  argument
 .Ed
-.Ss Option Flag lists
+.Ss Option Flag lists 
+An option flag list should be terminated with either a single dash or tilde.
 .Bd -literal -offset indent
  -a
      description
@@ -205,7 +201,18 @@ Utility argument and flag strings are parsed by placing them in square brackets 
      description
  -
 .Ed
-.Ss Displays and lists
+The listing of long options in the 
+.Sx Synopsis
+can over-complicate and almost make the utitlity flags unreadable but the option flag lists do provide a nice method for referencing the long option (aliases) for short options. To list a long option just add two dashes before it in the option flag list and it will be added as an additional flag.
+.Bd -literal -offset indent
+ -a --abbreviate
+     description
+ -a --longoption argument
+     description
+ ...
+ -
+.Ed
+.Ss Displays and lists 
 Both the traditional three-backticks and the "Vim documentation" method are allowed for code blocks.
 .Pp
 List types are:
@@ -214,18 +221,45 @@ List types are:
 single dash (-) are used for "tag" type lists.
 .It
 single tilde (~) are used for "dash" type lists.
+.It
+numbered items (1...) are used for "enum" type lists.
 .El
+.Pp
+.Em NOTE:
+upon reaching a newline after a 
+.Cm enum
+or a 
+.Cm dash
+type list, a list terminator is added.
+.Pp
 .Bd -literal -offset indent
  ```           display block: [-literal -offset indent]
  ```           end list block.
  <             display block: [-literal -offset indent]
- <             end list block.
+ >             end list block.
+ 1. ... 10.    List item: [-enum -compact]
  - string      List item: [-tag -width Ds]
  -             End list item.
  ~ string      List item: [-dash -compact]
- ~             End list item.
+ ~             End list item (optional for enum or dash type lists).
 .Ed
-.Ss Sections and cross references
+.Pp
+.Em EXAMPLE:
+Single tilde (~) are used for "dash" type lists.
+.Bd -literal -offset indent
+ ~ a list item
+ ~ another list item
+ ...
+.Ed
+.Pp
+.Em EXAMPLE:
+Numbered items (1...) are used for "enum" type lists.
+.Bd -literal -offset indent
+ 1. Numbered list item one.
+ 2. Numbered list item two.
+ ...
+.Ed
+.Ss Sections and cross references 
 .Bd -literal -offset indent
  # string      Section header (one line)
  ## string     Subsection header (one line)
@@ -235,14 +269,14 @@ single tilde (~) are used for "dash" type lists.
  $string       internal cross reference (one string - alpha)
  @string       Command Modifier
 .Ed
-.Ss Physical markup
+.Ss Physical markup 
 .Bd -literal -offset indent
  *string*      boldface font (symbolic) (enclosed string)
  _string_      italic font or underline (emphasis)
  `string`      Literal quote (enclosed string)
 .Ed
 .Pp
-.Ss Manual sections
+.Ss Manual sections 
 The standard sections for man pages:
 .Bd -literal -offset indent
  1             User Commands
@@ -255,12 +289,12 @@ The standard sections for man pages:
  8             System Administration tools and Deamons
 .Ed
 .Pp
-.Ss MARKDOWN COMMENTS
+.Ss MARKDOWN COMMENTS 
 A comments style header can be kept in the markdown file which 
 .Nm
 will ignore during processing. The comment style is HTML Tag style which is also ignored in other markdown processors.
 .Pp
-.Sh EXAMPLES
+.Sh EXAMPLES 
 Create an 'output' 
 .Xr mandoc 1  
 file from markdown 'input':
@@ -300,13 +334,13 @@ for viewing with
  % md2mdoc input | mandoc -mdoc | vim -M +MANPAGER -c 'map q :q<CR>' -
 .Ed
 .Pp
-.Sh SEE ALSO
+.Sh SEE ALSO 
 .Xr mdoc 7 , 
 .Xr mandoc 1 , 
 .Xr man 1 
 .Pp
-.Sh HISTORY
+.Sh HISTORY 
 Created for my personal use.
 .Pp
-.Sh AUTHOR
+.Sh AUTHOR 
 John Kaul

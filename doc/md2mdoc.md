@@ -1,6 +1,6 @@
 .\\\" Copyright (c) 2026 John Kaul
 .\\\" SPDX-License-Identifier: BSD-2-Clause
-date: Feb 02 2026
+date: Mar 18 2026
 title: md2mdoc 7
 author: John Kaul
 
@@ -15,7 +15,6 @@ inputfile
 # OPTIONS
 -o outputfile
     A mandoc file to write.
-
 - inputfile
     A file written in the markdown syntax outlined below.
 -
@@ -42,7 +41,8 @@ The use of this utility is intended to offer a way to keep project notes/documen
  -char         ->  .It Fl  : List element and a space after the <char>
                              is assumed to be an argument to the flag.
  -             ->  .El     : A single dash--followed by a newline--is
-                             a `list end` character.
+                             a `list end` character (required for tag
+                             type lists).
  ,---
  | EXAMPLE:
  |   -char             ->    .It Fl <char>
@@ -53,13 +53,8 @@ The use of this utility is intended to offer a way to keep project notes/documen
 
  ~ string      ->  .It     : List item (type: dash).
  ~             ->  .El     : A tilde--followed by a newline--is a
-                             `list end` character.
- ,---
- | EXAMPLE:
- |   ~ string          ->    .It <string>
- |   ~                 ->    .El
- `---
-
+                             `list end` character (optional for dash
+                             type lists).
  <             ->  .Bd     : Start of a `no format` ("begin display") block.
  >             ->  .Fi     : End of a `no format` block.
  ```           ->  .Bd     : Start/End of a `no format` ("begin display") block.
@@ -110,10 +105,9 @@ The use of this utility is intended to offer a way to keep project notes/documen
 
  ~ A List item.
  ~ Another list item.
- ~
 
  # OPTIONS
- -a
+ -a --append
      Append to the outout file.
 
  -b
@@ -171,6 +165,7 @@ the @name will be assigned to the .Nm ("name") macro, and @description will be a
 
 After the "name" has been parsed, the `$name` markdown shortcut can be used which will be replaced with the .Nm macro in the ^mdoc(1)^ output.
 
+## Synopsis
 Utility argument and flag strings are parsed by placing them in square brackets (\[ \]) and I have found that it's often easier to place these argument strings on their own lines (especially during the design phase of my utilities). The utility argument strings will only be parsed if they are on a line of their own.
 
 ```
@@ -180,6 +175,7 @@ Utility argument and flag strings are parsed by placing them in square brackets 
  argument
 ```
 ## Option Flag lists
+An option flag list should be terminated with either a single dash or tilde.
 ```
  -a
      description
@@ -189,22 +185,52 @@ Utility argument and flag strings are parsed by placing them in square brackets 
      description
  -
 ```
+The listing of long options in the $Synopsis can over-complicate and almost make the utitlity flags unreadable but the option flag lists do provide a nice method for referencing the long option (aliases) for short options. To list a long option just add two dashes before it in the option flag list and it will be added as an additional flag.
+```
+ -a --abbreviate
+     description
+ -a --longoption argument
+     description
+ ...
+ -
+```
 ## Displays and lists
 Both the traditional three-backticks and the "Vim documentation" method are allowed for code blocks.
 
 List types are:
 ~ single dash (-) are used for "tag" type lists.
 ~ single tilde (~) are used for "dash" type lists.
-~
+~ numbered items (1...) are used for "enum" type lists.
+
+_NOTE:_
+upon reaching a newline after a @enum or a @dash type list, a list terminator is added.
+
 ```
  ```           display block: [-literal -offset indent]
  ```           end list block.
  <             display block: [-literal -offset indent]
- <             end list block.
+ >             end list block.
+ 1. ... 10.    List item: [-enum -compact]
  - string      List item: [-tag -width Ds]
  -             End list item.
  ~ string      List item: [-dash -compact]
- ~             End list item.
+ ~             End list item (optional for enum or dash type lists).
+```
+
+_EXAMPLE:_
+Single tilde (~) are used for "dash" type lists.
+```
+ ~ a list item
+ ~ another list item
+ ...
+```
+
+_EXAMPLE:_
+Numbered items (1...) are used for "enum" type lists.
+```
+ 1. Numbered list item one.
+ 2. Numbered list item two.
+ ...
 ```
 ## Sections and cross references
 ```
