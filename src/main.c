@@ -127,9 +127,8 @@ static void skip_one_space_or_newline(const char **src);
 FILE *filedescriptors[2];                               /* An array to hold open file descriptors. */
 unsigned int stripwhitespace = 1;                       /* Used to pause/stop stripping whitespace */
 unsigned int codeblock       = 0;                       /* Used for codeblocks. */
-unsigned int listblock       = 0;                       /* Used for list blocks. */
-//:~  unsigned int dashlist        = 0;                       /* Used for enumation lists. */
-unsigned int enumlist        = 0;                       /* Used for enumation lists. */
+unsigned int optionslist     = 0;                       /* Used for option list blocks. */
+unsigned int dashorenumlist  = 0;                       /* Used for enumeration or dash lists. */
 unsigned int nameflag        = 0;                       /* Set when this program find the string: "# NAME". */
 unsigned int commentflag     = 0;                       /* Used for comment blocks (HTML style <!-- comment --> */
 
@@ -370,7 +369,7 @@ static void processnested(FILE *out, const char *str) {
  * processline --
  *      This process the current line from the file and handles
  *      line-level constructs (leading tokens, block state--codeblock,
- *      listblock, etc.).
+ *      optionslist, etc.).
  *
  * Parameters:
  *  str -   string to search
@@ -402,10 +401,10 @@ static void processline(FILE *out, char *str) {
     switch (c) {
       /* stripwhitespace = 0; */
       case '\n':                                        // Newlines are replaced with a break.
-        if (enumlist == 1) {
+        if (dashorenumlist == 1) {
           fprintf(out, ".El\n");
-          listblock = 0;
-          enumlist = 0;
+          optionslist = 0;
+          dashorenumlist = 0;
         }
         fprintf(out, ".Pp\n");
         return;
@@ -421,13 +420,13 @@ static void processline(FILE *out, char *str) {
       case '8':
       case '9':
         str += 1;
-        if(enumlist == 0) {                             /* Check to see if the `enumlist` flag has been set.
+        if(dashorenumlist == 0) {                             /* Check to see if the `dashorenumlist` flag has been set.
                                                            if it hasn't, create the list block and set the flag. */
-          enumlist = 1;
+          dashorenumlist = 1;
           fprintf(out, ".Bl -enum -offset indent -compact\n");
          }
 
-        if (enumlist == 1 && *str != '\n') {            /* If the enumlist flag has been set, and the next char
+        if (dashorenumlist == 1 && *str != '\n') {            /* If the dashorenumlist flag has been set, and the next char
                                                            is NOT a newline, this is just a list item. */
           while (!isalpha(*str)) str++;                 /* if the next item is not a (A-Za-z) char. */
           fprintf(out, ITEM);                           /* Add a 'list item' macro */
@@ -537,13 +536,13 @@ static void processline(FILE *out, char *str) {
         }
         ++str;                                          /* eat the dash */
 
-        if(listblock == 0) {                            /* Check to see if the `listblock` flag has been set.
+        if(optionslist == 0) {                            /* Check to see if the `optionslist` flag has been set.
                                                            if it hasn't, create the list block and set the flag. */
-          listblock = 1;
+          optionslist = 1;
           fprintf(out, ".Bl -tag -width Ds\n");
          }
 
-        if (listblock == 1 && *str != '\n') {           /* If the listblock flag has been set, and the next char
+        if (optionslist == 1 && *str != '\n') {           /* If the optionslist flag has been set, and the next char
                                                            is NOT a newline, this is just a list item. */
           fprintf(out, ITEM);                           /* Add a 'list item' macro */
 
@@ -582,28 +581,28 @@ static void processline(FILE *out, char *str) {
           ++str;
         }
 
-        if (*str == '\n' && listblock == 1) {           /* However, if the line was only a dash and the listblock
+        if (*str == '\n' && optionslist == 1) {           /* However, if the line was only a dash and the optionslist
                                                            is set then we need to close the item list. */
           fprintf(out, ".El\n");
-          listblock = 0;
-          enumlist = 0;
+          optionslist = 0;
+          dashorenumlist = 0;
         }
         break;
 
       case '~':                                         // An alternate list terminator or list item
         str++;
-        if (*str == '\n' && listblock == 1) {
+        if (*str == '\n' && optionslist == 1) {
           fprintf(out, ".El\n");
-          listblock = 0;
-          enumlist = 0;
+          optionslist = 0;
+          dashorenumlist = 0;
           return;
         }
-        if (listblock == 0) {
-          listblock = 1;
-          enumlist = 1;
+        if (optionslist == 0) {
+          optionslist = 1;
+          dashorenumlist = 1;
           fprintf(out, ".Bl -dash -compact\n");
         }
-        if (listblock == 1 && *str != '\n') {
+        if (optionslist == 1 && *str != '\n') {
           fprintf(out, ITEM);
           if (*str == ' ') {
             fprintf(out, "\n%s", ++str);
