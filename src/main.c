@@ -25,6 +25,7 @@
 // -\n         ->  .El     : A single dash is assumed to be a `list end`.
 // ~ <char>    ->  .It\n   : List element
 // ~\n         ->  .El     : An alternate `list end` character.
+// 1. ... 10.  ->  .It     : An enumerated list element.
 // <           ->  .nf     : Start of a `no format` block.
 // >           ->  .fi     : End of a `no format` block.
 // ```         ->  .nf     : Start/End of a `no format` block.
@@ -127,6 +128,8 @@ FILE *filedescriptors[2];                               /* An array to hold open
 unsigned int stripwhitespace = 1;                       /* Used to pause/stop stripping whitespace */
 unsigned int codeblock       = 0;                       /* Used for codeblocks. */
 unsigned int listblock       = 0;                       /* Used for list blocks. */
+//:~  unsigned int dashlist        = 0;                       /* Used for enumation lists. */
+unsigned int enumlist        = 0;                       /* Used for enumation lists. */
 unsigned int nameflag        = 0;                       /* Set when this program find the string: "# NAME". */
 unsigned int commentflag     = 0;                       /* Used for comment blocks (HTML style <!-- comment --> */
 
@@ -297,6 +300,7 @@ static void processnested(FILE *out, const char *str) {
             break;
         case '*':                                       /* bold -> .Sy %s\n */
             p++;                                        /* eat '*' */
+//:~              read_upto(&p, "*,) \n;:", tok, sizeof(tok), TRUE);
             read_upto(&p, "*,) \n;:", tok, sizeof(tok), TRUE);
             if (cntr >= 1) fprintf(out, "\n");
             fprintf(out, BOLD " %s\n", tok);
@@ -305,7 +309,8 @@ static void processnested(FILE *out, const char *str) {
 
         case '_':                                       /* italic -> .Em %s\n */
             p++;
-            read_upto(&p, "_ \n,.;:)", tok, sizeof(tok), TRUE);
+//:~              read_upto(&p, "_ \n,.;:)", tok, sizeof(tok), TRUE);
+            read_upto(&p, "_", tok, sizeof(tok), TRUE);
             if (cntr >= 1) fprintf(out, "\n");
             fprintf(out, ITALIC " %s\n", tok);
             skip_one_space_or_newline(&p);
@@ -374,28 +379,61 @@ static void processline(FILE *out, char *str) {
     int c;
     c = *str;
 
-    if(nameflag == 1) {                             /* If we are supposed to process a name... */
+    if(nameflag == 1) {                                 /* If we are supposed to process a name... */
       fprintf(out, ".Nm ");
-      do {                                          /* Print this chars until NOT a dash */
+      do {                                              /* Print this chars until NOT a dash */
         if (*str != '-')
           fprintf(out, "%c", *str);
-        ++str;                                      /* Eat the char */
-        if (*str == '-') {                          /* If we've encounted a dash, check for a doubledash. */
-          if(memcmp(str, "--", 2) == 0) {         /* double dashes signifies a `namedescription`. */
-            str += 2;                               /* Eat the `--` string */
+        ++str;                                          /* Eat the char */
+        if (*str == '-') {                              /* If we've encounted a dash, check for a doubledash. */
+          if(memcmp(str, "--", 2) == 0) {               /* double dashes signifies a `namedescription`. */
+            str += 2;                                   /* Eat the `--` string */
             fprintf(out, "\n.Nd");
           }
         }
       } while (*str != '\n');
-      nameflag = 0;                                 /* turn off the `nameflag`. */
+      nameflag = 0;                                     /* turn off the `nameflag`. */
       fprintf(out, "\n");
     }
 
+    if (codeblock == 0 || stripwhitespace == 1) {
+      stripspaces();
+    }
     switch (c) {
       /* stripwhitespace = 0; */
       case '\n':                                        // Newlines are replaced with a break.
+        if (enumlist == 1) {
+          fprintf(out, ".El\n");
+          listblock = 0;
+          enumlist = 0;
+        }
         fprintf(out, ".Pp\n");
         return;
+
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        str += 1;
+        if(enumlist == 0) {                             /* Check to see if the `enumlist` flag has been set.
+                                                           if it hasn't, create the list block and set the flag. */
+          enumlist = 1;
+          fprintf(out, ".Bl -enum -offset indent -compact\n");
+         }
+
+        if (enumlist == 1 && *str != '\n') {            /* If the enumlist flag has been set, and the next char
+                                                           is NOT a newline, this is just a list item. */
+          while (!isalpha(*str)) str++;                 /* if the next item is not a (A-Za-z) char. */
+          fprintf(out, ITEM);                           /* Add a 'list item' macro */
+          fprintf(out, "\n%s", str);                    /* Print the string */
+        }
+        break;
 
       case 'a':                                         // Look for the string 'author:'
         if(cimemcmp(str, "author:", 7) == 0) {
@@ -421,12 +459,12 @@ static void processline(FILE *out, char *str) {
       case '#':                                         // Section break (heading)
         if(strncmp(str, "## ", 3) == 0)  {
           sanitize(str, strlen(str));                   /* sanitize rest of string of all hashs */
-          stripspaces();
-          fprintf(out, SUBSECTION " %s", str);
+          while (!isalpha(*str)) str++;
+          fprintf(out, SUBSECTION " %s\n", str);
           return;
         } else if(strncmp(str, "# ", 2) == 0) {
           sanitize(str, strlen(str));                   /* sanitize rest of string of all hashs */
-          stripspaces();
+          while (!isalpha(*str)) str++;
           fprintf(out, SECTION " %s\n", str);
           if(cimemcmp(str, "NAME", 4) == 0) {           /* If we've found a "NAME" heading, we can
                                                            assume the section looks something like:
@@ -510,6 +548,7 @@ static void processline(FILE *out, char *str) {
           fprintf(out, ITEM);                           /* Add a 'list item' macro */
 
           if (isalpha(*str) > 0)                        /* if the next item is (A-Za-z) char. */
+//:~            if (isspace(*str) == 0)                       /* if the next item is a space char. */
             fprintf(out, FLAG);                         /* Add a 'flag' macro. */
 
           fprintf(out, "%c", *str);                     /* Print the flag. */
@@ -518,6 +557,24 @@ static void processline(FILE *out, char *str) {
           if (*str == ' ') {                            /* if we find a space after the flag, this is an argument
                                                            EG: "-f argument"
                                                                   ^           */
+
+            if (*(str + 1) == '-') {                    /* if we find a double dash, we assume there is a "long option" next"
+                                                            EG: "-f --file"
+                                                                    ^       */
+              if (strncmp(str, "--", 2)) {
+                str += 2;
+                fprintf(out, " Fl ");
+                while (*str != ' ' && *str != '\n') {
+                  fprintf(out, "%c", *str);
+                  str++;
+                }
+              }
+              if (*str == '\n') {
+                fprintf(out, "\n");
+                break;
+              }
+            }
+
             fprintf(out, " Ar%s", str);                 /* Print the 'argument' macro and the string. */
           } else {
             fprintf(out, "%s", str);                    /* else just print the line. */
@@ -529,6 +586,7 @@ static void processline(FILE *out, char *str) {
                                                            is set then we need to close the item list. */
           fprintf(out, ".El\n");
           listblock = 0;
+          enumlist = 0;
         }
         break;
 
@@ -537,10 +595,12 @@ static void processline(FILE *out, char *str) {
         if (*str == '\n' && listblock == 1) {
           fprintf(out, ".El\n");
           listblock = 0;
+          enumlist = 0;
           return;
         }
         if (listblock == 0) {
           listblock = 1;
+          enumlist = 1;
           fprintf(out, ".Bl -dash -compact\n");
         }
         if (listblock == 1 && *str != '\n') {
@@ -588,9 +648,6 @@ static void processline(FILE *out, char *str) {
       default:
         if (commentflag == 1) {
           return;
-        }
-        if (stripwhitespace == 1) {
-          while (isspace(*str) > 0) str++;
         }
 
         if (codeblock == 0) {                           /* If we're not in a clode block... */
