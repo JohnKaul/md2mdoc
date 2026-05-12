@@ -140,21 +140,53 @@ To change the install location you can use something like the following:
 ```
 
 ## CONTRIBUTION GUIDELINES
-
 ### Git Standards
+Contributions should be single-subject only (single-line bug fixes,
+small refactors, spelling/typo fixes, etc.). Changes that touch
+multiple files or address several unrelated topics are hard to review
+and may have unforeseen side effects; contributions spanning multiple
+subjects may be requested to be split into smaller, focused commits or
+closed.
 
-#### Commiting
+This project includes a test script (`runtest.sh`) which can run
+against possible code changes.
 
-1.  Commit each file as changes are made.
-2.  Do not commit files in batch.
-3.  Please prefix all commits with the file you are commiting.
-4.  Separate subject from body with a blank line
-5.  Limit the subject line to 50 characters
-6.  Capitalize the subject line
-7.  Do not end the subject line with a period
-8.  Use the imperative mood in the subject line
-9.  Wrap the body at 72 characters
-10. Use the body to explain what and why vs. how
+<!---
+### Versioning
+Use MAJOR.MINOR.PATCH:
+- **MAJOR** — incompatible API changes
+- **MINOR** — added or improved backward-compatible functionality
+- **PATCH** — backward-compatible bug fixes
+-->
+
+### Committing
+1. List file(s) in the subject line. If committing several files,
+   prefix the subject line with "(MF)" (multiple files) and separate
+   filenames with commas.
+2. Separate subject from body with a blank line.
+3. Limit the subject line to 50 characters.
+4. Do not end the subject line with a period.
+5. Use the imperative mood in the subject line.
+6. Wrap the body at 72 characters.
+7. Use the body to explain what and why (not how).
+
+Example commit:
+```
+    (MF) changelog, version.h, md2mdoc.7
+
+    1. Update documentation.
+```
+
+### Use of AI
+Code produced with AI assistance may be accepted only if it is:
+- Trivial and not copyrightable (e.g., single-line fixes, basic refactors), or
+- Accompanied by a public statement from the AI provider that they do
+  not assert copyright over the generated work.
+
+AI-assisted code is often harder to maintain and for that reason,
+human-authored patches for larger changes is preferred. Large-scope
+refactors or additions that appear to be AI-generated can be closed
+without explanation.
 
 ## HISTORY
 * Created for my personal use.
