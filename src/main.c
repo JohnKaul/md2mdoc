@@ -1,5 +1,5 @@
 //===---------------------------------------------------*- C -*---===
-// File Last Updated: 02.02.26 19:24:33
+// File Last Updated: 03.23.26 21:15:23
 //
 //: md2mdoc
 //
@@ -81,12 +81,19 @@
 
 #endif
 
+#ifdef _DEBUG
+FILE *logfile;
+#endif
+
 //-------------------------------------------------------------------
 // Constants Declarations
 //-------------------------------------------------------------------
 #define TRUE 1
 #define FALSE 0
 #define stripspaces()  while (isspace(*str) > 0 && *str != '\0') str++;
+//:~  #ifdef _DEBUG
+//:~  #define stripspaces()  do { while (*str != '\0' && isspace((unsigned char)*str)) str++; } while (0)
+//:~  #endif
 #define stripnewline()  while (*str == '\n' || *str != '\0') str++;
 
 #define SECTION ".Sh"
@@ -115,7 +122,6 @@ static void processline(FILE *out, char *str);          /* Process one line of t
 static void processnested(FILE *out, const char *str);
 static int readline(FILE *fd, char *buf, int nbytes);   /* Read a line of text from file. */
 static int cimemcmp(const void *s1, const void *s2, size_t n); /* case independent memory regon compare */
-//:~  static int read_until(const char **src, char delim, char *dst, size_t dstcap);
 static int read_upto(const char **src, const char *delims, char *dst, size_t dstcap, int eatfinalchar);
 static void skip_one_space_or_newline(const char **src);
 
@@ -276,31 +282,30 @@ static void processnested(FILE *out, const char *str) {
 
     while (*p) {
         switch (*p) {
-          case '@':                                     /* UNDOCUMENTED - "modifiers"
-                                                           Shortcut for '.Cm' (Command Modifier) */
+          case '@':                                     /* "modifiers" : Shortcut for '.Cm' (Command Modifier) */
             p++;
             if (cntr >= 1) fprintf(out, "\n");
             read_upto(&p, " ,\n:;()", tok, sizeof(tok), FALSE);
             fprintf(out, COMMANDMODIFIER " %s\n", tok);
             skip_one_space_or_newline(&p);
             break;
-          case '$':                                     /* UNDOCUMENTED - "reference"
-                                                           Shortcut for '.Nm' (project name) */
+          case '$':                                     /* "reference":  $name = Shortcut for '.Nm' (project name) */
             p++;
             if (cntr >= 1) fprintf(out, "\n");
             read_upto(&p, "'\") ,\n:;", tok, sizeof(tok), FALSE);
             skip_one_space_or_newline(&p);
             if (strncmp(tok, "name", 4) == 0) {
               fprintf(out, NAME "\n");
-            } else {                                    /* UNDOCUMENTED - "section reference" */
+            } else {                                    /* "section reference" */
               fprintf(out, SECTIONREFERENCE " %s\n", tok);
               skip_one_space_or_newline(&p);
            }
             break;
         case '*':                                       /* bold -> .Sy %s\n */
             p++;                                        /* eat '*' */
-//:~              read_upto(&p, "*,) \n;:", tok, sizeof(tok), TRUE);
-            read_upto(&p, "*,) \n;:", tok, sizeof(tok), TRUE);
+            if(*p == '*') p++;                          /* possibly commonmark style bold */
+            read_upto(&p, "*\n", tok, sizeof(tok), TRUE);
+            if(*p == '*') p++;
             if (cntr >= 1) fprintf(out, "\n");
             fprintf(out, BOLD " %s\n", tok);
             skip_one_space_or_newline(&p);
@@ -308,7 +313,6 @@ static void processnested(FILE *out, const char *str) {
 
         case '_':                                       /* italic -> .Em %s\n */
             p++;
-//:~              read_upto(&p, "_ \n,.;:)", tok, sizeof(tok), TRUE);
             read_upto(&p, "_", tok, sizeof(tok), TRUE);
             if (cntr >= 1) fprintf(out, "\n");
             fprintf(out, ITALIC " %s\n", tok);
@@ -357,6 +361,9 @@ static void processnested(FILE *out, const char *str) {
 
         default:
             /* regular character: write single char */
+#ifdef _DEBUG
+            fprintf(logfile, "processnested output char: '%c'(0x%02x) at p=\"%s\"", *p, (unsigned char)*p, p);
+#endif
             fprintf(out, "%c", *p);
             p++;
             break;
@@ -398,6 +405,9 @@ static void processline(FILE *out, char *str) {
     if (codeblock == 0 || stripwhitespace == 1) {
       stripspaces();
     }
+#ifdef _DEBUG
+    fprintf(logfile, "processline entry: str=\"%s\" first='%c'(0x%02x)\n", str, *str, (unsigned char)*str);
+#endif
     switch (c) {
       /* stripwhitespace = 0; */
       case '\n':                                        // Newlines are replaced with a break.
@@ -406,7 +416,11 @@ static void processline(FILE *out, char *str) {
           optionslist = 0;
           dashorenumlist = 0;
         }
-        fprintf(out, ".Pp\n");
+        if (codeblock == 0) 
+          fprintf(out, ".Pp\n");
+        else
+          fprintf(out, "\n");
+
         return;
 
       case '0':
@@ -420,19 +434,19 @@ static void processline(FILE *out, char *str) {
       case '8':
       case '9':
         str += 1;
-        if(dashorenumlist == 0) {                             /* Check to see if the `dashorenumlist` flag has been set.
+        if(dashorenumlist == 0) {                       /* Check to see if the `dashorenumlist` flag has been set.
                                                            if it hasn't, create the list block and set the flag. */
           dashorenumlist = 1;
           fprintf(out, ".Bl -enum -offset indent -compact\n");
          }
 
-        if (dashorenumlist == 1 && *str != '\n') {            /* If the dashorenumlist flag has been set, and the next char
+        if (dashorenumlist == 1 && *str != '\n') {      /* If the dashorenumlist flag has been set, and the next char
                                                            is NOT a newline, this is just a list item. */
           while (!isalpha(*str)) str++;                 /* if the next item is not a (A-Za-z) char. */
           fprintf(out, ITEM);                           /* Add a 'list item' macro */
           fprintf(out, "\n%s", str);                    /* Print the string */
+          break;
         }
-        break;
 
       case 'a':                                         // Look for the string 'author:'
         if(cimemcmp(str, "author:", 7) == 0) {
@@ -440,7 +454,6 @@ static void processline(FILE *out, char *str) {
           fprintf(out, AUTHOR "%s", str);
           return;
         }
-
       case 'd':                                         // Date
         if(cimemcmp(str, "date:", 5) == 0) {
           str += 5;                                     /* Eat the `date:` string */
@@ -454,6 +467,11 @@ static void processline(FILE *out, char *str) {
           fprintf(out, TITLE "%s.Os\n", str);
           return;
         }
+
+        /* FALLTHROUGH: The string we are processing starts with 'a', 'd', or 't' but
+         * is not a "author:, date:, or title:" line — print normally */
+        processnested(out, str);
+        return;
 
       case '#':                                         // Section break (heading)
         if(strncmp(str, "## ", 3) == 0)  {
@@ -547,7 +565,6 @@ static void processline(FILE *out, char *str) {
           fprintf(out, ITEM);                           /* Add a 'list item' macro */
 
           if (isalpha(*str) > 0)                        /* if the next item is (A-Za-z) char. */
-//:~            if (isspace(*str) == 0)                       /* if the next item is a space char. */
             fprintf(out, FLAG);                         /* Add a 'flag' macro. */
 
           fprintf(out, "%c", *str);                     /* Print the flag. */
@@ -689,6 +706,9 @@ int main(int argc, char *argv[]) {
   // -Default output is `stdout` unless specified otherwise.
   filedescriptors[1] = stdout;
 
+#ifdef _DEBUG
+  logfile = fopen("./log", "w");
+#endif
   // -Parse the command line options.
   for (int i = 0; i < argc; i++) {
     if (argv[i] && strlen(argv[i]) > 1) {
